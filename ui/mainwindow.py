@@ -17,6 +17,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     """
     Class documentation goes here.
     """
+
     def __init__(self, parent=None):
         """
         Constructor
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar.showMessage("Welcome to PyDSF")
 
 
+
     @pyqtSlot("QAbstractButton*")
     def on_buttonBox_open_reset_clicked(self, button):
         """
@@ -47,8 +49,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif button == self.buttonBox_open_reset.button(QDialogButtonBox.Reset):
             self.listWidget_data.clear()
             print("Data cleared")
-#            self.radioButton_rep_rows.setEnabled(False)
-#            self.radioButton_rep_columns.setEnabled(False)
+        # self.radioButton_rep_rows.setEnabled(False)
+        #            self.radioButton_rep_columns.setEnabled(False)
 
 
     @pyqtSlot("QString")
@@ -61,10 +63,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.groupBox_temp.setEnabled(True)
         else:
             self.groupBox_temp.setEnabled(False)
-#        self.groupBox_data.setEnabled(True)
-#        self.groupBox_cutoff.setEnabled(True)
-#        self.groupBox_cbar.setEnabled(True)
-#        self.groupBox_signal_threshold.setEnabled(True)
+        # self.groupBox_data.setEnabled(True)
+        #        self.groupBox_cutoff.setEnabled(True)
+        #        self.groupBox_cbar.setEnabled(True)
+        #        self.groupBox_signal_threshold.setEnabled(True)
 
     @pyqtSlot()
     def on_buttonBox_process_accepted(self):
@@ -76,7 +78,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QMessageBox.critical(self, 'Error', "No data file loaded!", QMessageBox.Close, QMessageBox.Close)
             return
         if self.spinBox_signal_threshold.value() == 0 and self.groupBox_signal_threshold.isChecked():
-            QMessageBox.warning(self, 'Warning', "Signal threshold is currently set to zero.", QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.warning(self, 'Warning', "Signal threshold is currently set to zero.", QMessageBox.Ok,
+                                QMessageBox.Ok)
 
         self.progressBar.setEnabled(True)
         self.statusBar.showMessage("Processing...")
@@ -90,7 +93,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             c_lower = self.doubleSpinBox_lower.value()
             c_upper = self.doubleSpinBox_upper.value()
         if self.groupBox_cbar.isChecked():
-            cbar_range = (self.doubleSpinBox_cbar_start,  self.doubleSpinBox_cbar_end)
+            cbar_range = (self.doubleSpinBox_cbar_start, self.doubleSpinBox_cbar_end)
         if self.groupBox_signal_threshold.isChecked():
             signal_threshold = self.spinBox_signal_threshold.value()
 
@@ -99,29 +102,53 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         files = []
         for item in items:
             files.append(item.text())
-        exp = Experiment(type=type, files=files, t1=self.doubleSpinBox_tmin.value(), t2=self.doubleSpinBox_tmax.value(), dt=self.doubleSpinBox_dt.value(), cols=12, rows=8,  cutoff_low=c_lower,  cutoff_high=c_upper,  signal_threshold=signal_threshold,  color_range=cbar_range)
+        exp = Experiment(type=type, files=files, t1=self.doubleSpinBox_tmin.value(), t2=self.doubleSpinBox_tmax.value(),
+                         dt=self.doubleSpinBox_dt.value(), cols=12, rows=8, cutoff_low=c_lower, cutoff_high=c_upper,
+                         signal_threshold=signal_threshold, color_range=cbar_range)
         exp.analyze()
 
         # plate = Plate(type=type, filename=self.lineEdit_data_file.text(), t1=self.doubleSpinBox_tmin.value(), t2=self.doubleSpinBox_tmax.value(), dt=self.doubleSpinBox_dt.value(), cols=12, rows=8,  cutoff_low=c_lower,  cutoff_high=c_upper,  signal_threshold=signal_threshold,  color_range=cbar_range)
         # self.statusBar.addWidget(self.pb, 100)
-        #plate.analyze(gui=self)
+        # plate.analyze(gui=self)
         save_data = QMessageBox.question(self, 'Save data', "Calculations are finished. Save results?",
-                                         QMessageBox.Yes|QMessageBox.No, QMessageBox.Yes)
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if save_data == QMessageBox.Yes:
             dialog = QFileDialog()
             dialog.setFileMode(QFileDialog.Directory)
             folder = dialog.getExistingDirectory(self, 'Choose path for results')
             for plate in exp.plates:
-                plate.write_tm_table('{}/plate_{}_04_tm.csv'.format(folder,  str(plate.id)))
-                plate.write_derivative_table('{}/plate_{}_03_dI_dT.csv'.format(folder,  str(plate.id)))
-                plate.write_filtered_table('{}/plate_{}_02_filtered_data.csv'.format(folder,  str(plate.id)))
-                plate.write_raw_table('{}/plate_{}_01_raw_data.csv'.format(folder,  str(plate.id)))
+                plate.write_tm_table('{}/plate_{}_04_tm.csv'.format(folder, str(plate.id)))
+                plate.write_derivative_table('{}/plate_{}_03_dI_dT.csv'.format(folder, str(plate.id)))
+                plate.write_filtered_table('{}/plate_{}_02_filtered_data.csv'.format(folder, str(plate.id)))
+                plate.write_raw_table('{}/plate_{}_01_raw_data.csv'.format(folder, str(plate.id)))
 
             if exp.avg_plate:
-                exp.avg_plate.write_avg_tm_table('{}/plate_{}_05_tm_avg.csv'.format(folder,  str(exp.avg_plate.id)))
-            #plot(plate, self)
+                exp.avg_plate.write_avg_tm_table('{}/plate_{}_05_tm_avg.csv'.format(folder, str(exp.avg_plate.id)))
+                #plot(plate, self)
 
-        plot(exp)
+        plotter = PlotResults(exp)
+        for i in range(self.tabWidget.count()):
+            for plate in exp.plates:
+                if i == 0:
+                    plotter.plot_raw(plate, self.tabWidget.widget(i))
+                elif i == 1:
+                    plotter.plot_derivative(plate, self.tabWidget.widget(i))
+                elif i == 2:
+                    plotter.plot_tm_heatmap_single(plate, self.tabWidget.widget(i))
+                elif exp.avg_plate and i == 3:
+                    plotter.plot_tm_heatmap_single(exp.avg_plate, self.tabWidget.widget(i))
+                    self.tabWidget.setTabEnabled(i, True)
+                else:
+                    self.tabWidget.setTabEnabled(i, False)
+
+        #for i in range(self.tabWidget.count()):
+        #    self.tabWidget.widget(i).canvas.clear()
+
+        #fig, ax = figures[0]
+        #self.tabWidget.widget(0).canvas.fig = fig
+        #self.tabWidget.widget(0).canvas.ax = ax
+
+        #self.tabWidget.widget(0).canvas.draw()
 
         self.progressBar.setEnabled(False)
         self.statusBar.showMessage("Finished!")
@@ -135,6 +162,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         QApplication.quit()
 
     pyqtSlot()
+
     def on_actionQuit_triggered(self):
         """
         Slot documentation goes here.

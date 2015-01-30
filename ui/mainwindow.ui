@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>388</width>
-    <height>642</height>
+    <width>808</width>
+    <height>646</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,7 +35,7 @@
       <property name="checkable">
        <bool>false</bool>
       </property>
-      <layout class="QGridLayout" name="gridLayout">
+      <layout class="QFormLayout" name="formLayout_3">
        <item row="0" column="0">
         <widget class="QLabel" name="label_instrument">
          <property name="text">
@@ -247,7 +247,7 @@
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Only T&lt;span style=&quot; vertical-align:sub;&quot;&gt;m&lt;/span&gt; values within this limit are considered valid.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="title">
-          <string>Cutoff</string>
+          <string>&amp;Cutoff</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -406,14 +406,44 @@
          </layout>
         </widget>
        </item>
+       <item row="4" column="1">
+        <widget class="QDialogButtonBox" name="buttonBox_process">
+         <property name="standardButtons">
+          <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="QDialogButtonBox" name="buttonBox_process">
-      <property name="standardButtons">
-       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+    <item row="0" column="1">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>3</number>
       </property>
+      <widget class="MplWidget" name="tab_raw">
+       <attribute name="title">
+        <string>Raw Data</string>
+       </attribute>
+      </widget>
+      <widget class="MplWidget" name="tab_derivative">
+       <attribute name="title">
+        <string>&amp;1st derivative</string>
+       </attribute>
+      </widget>
+      <widget class="MplWidget" name="tab_heatmap">
+       <attribute name="title">
+        <string>Heatmap</string>
+       </attribute>
+      </widget>
+      <widget class="MplWidget" name="tab_heatmap_avg">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <attribute name="title">
+        <string>Heatmap average</string>
+       </attribute>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -423,7 +453,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>388</width>
+     <width>808</width>
      <height>29</height>
     </rect>
    </property>
@@ -444,7 +474,7 @@
      <locale language="English" country="UnitedStates"/>
     </property>
     <property name="title">
-     <string>Help</string>
+     <string>Hel&amp;p</string>
     </property>
     <addaction name="actionAbout"/>
     <addaction name="actionAbout_Qt"/>
@@ -465,7 +495,7 @@
   </action>
   <action name="actionAbout_Qt">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/qtlogo.svg</normaloff>:/qtlogo.svg</iconset>
    </property>
    <property name="text">
@@ -473,6 +503,14 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MplWidget</class>
+   <extends>QWidget</extends>
+   <header>mplwidget</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="icons.qrc"/>
  </resources>

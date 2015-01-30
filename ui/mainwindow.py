@@ -80,7 +80,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.groupBox_signal_threshold.isChecked():
             signal_threshold = self.spinBox_signal_threshold.value()
             
-        items = (self.listWidget_data.item(i) for i in xrange(self.listWidget_data.count()))
+        items = (self.listWidget_data.item(i) for i in range(self.listWidget_data.count()))
         
         files = []
         for item in items:

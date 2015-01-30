@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Tasks SYSTEM "Tasks-5.0.dtd">
+<!-- eric5 tasks file for project PyDSF -->
+<!-- Saved: 2012-10-30, 16:26:48 -->
+<Tasks version="5.0">
+  <ProjectScanFilter></ProjectScanFilter>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: not implemented yet</Summary>
+    <Description></Description>
+    <Created>2012-10-25, 12:56:20</Created>
+    <Resource>
+      <Filename>ui/main.py</Filename>
+      <Linenumber>32</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: the window parameter could be the window itself if a list instead of</Summary>
+    <Description></Description>
+    <Created>2012-10-30, 16:01:08</Created>
+    <Resource>
+      <Filename>peakdetect.py</Filename>
+      <Linenumber>594</Linenumber>
+    </Resource>
+  </Task>
+  <Task priority="1" completed="False" bugfix="False">
+    <Summary>TODO: not implemented yet</Summary>
+    <Description></Description>
+    <Created>2012-10-30, 16:26:45</Created>
+    <Resource>
+      <Filename>ui/mainwindow.py</Filename>
+      <Linenumber>140</Linenumber>
+    </Resource>
+  </Task>
+</Tasks>

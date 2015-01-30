@@ -1,11 +1,11 @@
 #! /usr/bin/env python2
 # -*- coding: utf-8 -*-
-import os
 import csv
 
 try:
     import matplotlib as mpl
-    mpl.use('Qt4Agg')
+
+    mpl.use('Qt5Agg')
     import matplotlib.ticker as ticker
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -16,8 +16,6 @@ try:
     import peakutils
 except ImportError:
     raise ImportError('----- PeakUtils must be installed. -----')
-
-#from peakdetect import *
 
 try:
     import numpy as np
@@ -195,7 +193,7 @@ class Experiment:
         if color_range:
             self.color_range = color_range
         else:
-            self.color_range = None
+            self.color_range = (self.t1, self.t2)
             
         self.plates = []
             

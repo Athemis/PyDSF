@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>352</width>
-    <height>548</height>
+    <width>388</width>
+    <height>642</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -73,39 +73,13 @@
           <string>Data File</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_4">
-          <item row="0" column="0">
-           <widget class="QListWidget" name="listWidget_data">
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QDialogButtonBox" name="buttonBox_open">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="standardButtons">
-             <set>QDialogButtonBox::Open</set>
-            </property>
-            <property name="centerButtons">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0" colspan="2">
+          <item row="2" column="0" colspan="2">
            <widget class="QGroupBox" name="groupBox_replicates">
             <property name="title">
              <string>Replicates</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
             </property>
             <property name="checkable">
              <bool>true</bool>
@@ -128,6 +102,35 @@
               </widget>
              </item>
             </layout>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QDialogButtonBox" name="buttonBox_open_reset">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="standardButtons">
+             <set>QDialogButtonBox::Open|QDialogButtonBox::Reset</set>
+            </property>
+            <property name="centerButtons">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0" rowspan="2">
+           <widget class="QListWidget" name="listWidget_data">
+            <property name="alternatingRowColors">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
          </layout>
@@ -182,7 +185,7 @@
              <number>1</number>
             </property>
             <property name="value">
-             <double>25.000000000000000</double>
+             <double>20.000000000000000</double>
             </property>
            </widget>
           </item>
@@ -268,7 +271,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="label_cutoff_high">
             <property name="text">
-             <string>Upper</string>
+             <string>&amp;Upper</string>
             </property>
             <property name="buddy">
              <cstring>doubleSpinBox_upper</cstring>
@@ -320,7 +323,7 @@
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If the signal exceeds this threshold, the coresponding well is assumed to be denatured.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
          <property name="title">
-          <string>Signal Threshold</string>
+          <string>Si&amp;gnal Threshold</string>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -383,7 +386,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="label_cbar_end">
             <property name="text">
-             <string>End</string>
+             <string>En&amp;d</string>
             </property>
             <property name="buddy">
              <cstring>doubleSpinBox_cbar_end</cstring>
@@ -420,8 +423,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>352</width>
-     <height>24</height>
+     <width>388</width>
+     <height>29</height>
     </rect>
    </property>
    <property name="locale">
@@ -432,7 +435,7 @@
      <locale language="English" country="UnitedStates"/>
     </property>
     <property name="title">
-     <string>File</string>
+     <string>Fi&amp;le</string>
     </property>
     <addaction name="actionQuit"/>
    </widget>
@@ -452,12 +455,12 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionQuit">
    <property name="text">
-    <string>Quit</string>
+    <string>&amp;Quit</string>
    </property>
   </action>
   <action name="actionAbout">
    <property name="text">
-    <string>About</string>
+    <string>&amp;About</string>
    </property>
   </action>
   <action name="actionAbout_Qt">
@@ -466,7 +469,7 @@
      <normaloff>:/qtlogo.svg</normaloff>:/qtlogo.svg</iconset>
    </property>
    <property name="text">
-    <string>About Qt</string>
+    <string>About &amp;Qt</string>
    </property>
   </action>
  </widget>

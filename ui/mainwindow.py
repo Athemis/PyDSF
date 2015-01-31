@@ -33,6 +33,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar.addPermanentWidget(self.progressBar)
         self.statusBar.showMessage("Welcome to PyDSF")
 
+        self.buttonBox_process.addButton("&Start Processing", QDialogButtonBox.AcceptRole)
+
 
 
     @pyqtSlot("QAbstractButton*")

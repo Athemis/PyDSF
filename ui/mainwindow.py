@@ -143,9 +143,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 else:
                     self.tabWidget.setTabEnabled(i, False)
 
-        #for i in range(self.tabWidget.count()):
-        #    self.tabWidget.widget(i).canvas.clear()
-
         #fig, ax = figures[0]
         #self.tabWidget.widget(0).canvas.fig = fig
         #self.tabWidget.widget(0).canvas.ax = ax

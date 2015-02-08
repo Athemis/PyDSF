@@ -1,7 +1,6 @@
 #! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 import csv
-import multiprocessing as mp
 
 try:
     import matplotlib as mpl
@@ -24,9 +23,8 @@ except ImportError:
     raise ImportError('----- NumPy must be installed. -----')
 
 try:
-    from scipy.signal import filtfilt, butter
+    from scipy.signal import filtfilt, butter, find_peaks_cwt
     from scipy import interpolate
-    from scipy import optimize
 except ImportError:
     raise ImportError('----- SciPy must be installed. -----')
 
@@ -86,7 +84,7 @@ class Well:
         self.owner.denatured_wells.append(self)
 
         if self.owner.tm_cutoff_low != self.owner.t1 or self.owner.tm_cutoff_high != self.owner.t1:
-            x = np.arange(self.owner.tm_cutoff_low, self.owner.tm_cutoff_high + 1, self.owner.dt, dtype=float)
+            x = np.arange(self.owner.tm_cutoff_low, self.owner.tm_cutoff_high + 1, self.owner.dt, dtype=np.dtype(np.float))
 
         x = self.owner.temprange
         y = self.derivatives[1]
@@ -95,16 +93,26 @@ class Well:
             y = y - self.baseline
 
         try:
-            peak_indexes = peakutils.indexes(y, min_dist=len(x))  # calculate a rough estimate of peaks; set min_dist
-            # temperature range to only find one/the highest peak
-            tm = peakutils.interpolate(x, y, ind=peak_indexes)[0]  # increase resolution by fitting gaussian function
-            # to peak
+            peak_indexes = peakutils.indexes(y, thres=0.3)
+
+            # loop over results to find maximum value for peak candidates
+            max_y = None
+            max_i = None
+            for peak in peak_indexes:
+                if not max_y or y[peak] > max_y:
+                    max_y = y[peak]
+                    max_i = peak
+
+            if y[max_i] > 0: # if value of second derivative is positive, choose identified position as peak candidate
+                tm = x[max_i]
+            else:
+                return np.NaN # else discard
         except:
             return np.NaN  # In case of error, return no peak
 
         try:
-            # Check if the peak is within cutoff range
             if tm and tm >= self.owner.tm_cutoff_low and tm <= self.owner.tm_cutoff_high:
+                tm = round(peakutils.interpolate(x, y, width=3, ind=[max_i])[0], 2)
                 self.owner.denatured_wells.remove(self)  # If everything is fine, remove the denatured flag
                 return tm  # and return the Tm
             else:

@@ -6,11 +6,19 @@ Module implementing MainWindow.
 
 VERSION = "1.0"
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
 from PyQt5.QtWidgets import *
 
 from .Ui_mainwindow import Ui_MainWindow
+from .mplwidget import MplWidget
 from pydsf import *
+
+class ProcessData(QObject):
+    finished = pyqtSignal()
+
+    def process(self):
+        raise NotImplementedError
+
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -70,6 +78,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #        self.groupBox_cbar.setEnabled(True)
         #        self.groupBox_signal_threshold.setEnabled(True)
 
+    def generate_plot_tab(self, name):
+        tab = MplWidget()
+        tab.setObjectName(name)
+        return tab
+
+    def generate_plate_tabs(self, plate):
+        plotter = PlotResults()
+
+        if id != 'average':
+            tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
+            self.tabWidget.addTab(tab, "Heatmap #{}".format(plate.id))
+            plotter.plot_tm_heatmap_single(plate, tab)
+
+            tab = self.generate_plot_tab("tab_raw_{}".format(id))
+            self.tabWidget.addTab(tab, "Raw Data #{}".format(plate.id))
+            plotter.plot_raw(plate, tab)
+        else:
+            tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
+            self.tabWidget.addTab(tab, "Heatmap ({})".format(plate.id))
+            plotter.plot_tm_heatmap_single(plate, tab)
+
     @pyqtSlot()
     def on_buttonBox_process_accepted(self):
         """
@@ -128,20 +157,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 exp.avg_plate.write_avg_tm_table('{}/plate_{}_05_tm_avg.csv'.format(folder, str(exp.avg_plate.id)))
                 #plot(plate, self)
 
-        plotter = PlotResults(exp)
-        for i in range(self.tabWidget.count()):
-            for plate in exp.plates:
-                if i == 0:
-                    plotter.plot_raw(plate, self.tabWidget.widget(i))
-                elif i == 1:
-                    plotter.plot_derivative(plate, self.tabWidget.widget(i))
-                elif i == 2:
-                    plotter.plot_tm_heatmap_single(plate, self.tabWidget.widget(i))
-                elif exp.avg_plate and i == 3:
-                    plotter.plot_tm_heatmap_single(exp.avg_plate, self.tabWidget.widget(i))
-                    self.tabWidget.setTabEnabled(i, True)
-                else:
-                    self.tabWidget.setTabEnabled(i, False)
+        for i in range(len(exp.plates)):
+
+            plate = exp.plates[i]
+            self.generate_plate_tabs(plate)
+
+        if exp.avg_plate:
+
+            plate = exp.avg_plate
+            self.generate_plate_tabs(plate)
+
+
+
+
+
+
+
+        #for i in range(self.tabWidget.count()):
+        #    for plate in exp.plates:
+        #        if i == 0:
+        #            plotter.plot_raw(plate, self.tabWidget.widget(i))
+        #            self.tabWidget.setTabText(i, "Raw Data #{}".format(plate.id))
+                #elif i == 1:
+                #    plotter.plot_derivative(plate, self.tabWidget.widget(i))
+                #elif i == 2:
+                #    plotter.plot_tm_heatmap_single(plate, self.tabWidget.widget(i))
+                #elif exp.avg_plate and i == 3:
+                #    plotter.plot_tm_heatmap_single(exp.avg_plate, self.tabWidget.widget(i))
+                #    self.tabWidget.setTabEnabled(i, True)
+                #else:
+                #    self.tabWidget.setTabEnabled(i, False)
 
         #fig, ax = figures[0]
         #self.tabWidget.widget(0).canvas.fig = fig
@@ -190,3 +235,4 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Slot documentation goes here.
         """
         QApplication.aboutQt()
+

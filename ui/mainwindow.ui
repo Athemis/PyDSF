@@ -485,7 +485,7 @@
        </widget>
        <widget class="MplWidget" name="tab_derivative">
         <attribute name="title">
-         <string>&amp;1st derivative</string>
+         <string>&amp;2nd derivative</string>
         </attribute>
        </widget>
        <widget class="MplWidget" name="tab_heatmap">

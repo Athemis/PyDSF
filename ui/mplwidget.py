@@ -10,6 +10,7 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         FigureCanvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
     def clear(self):
         self.ax.clear()
@@ -18,7 +19,6 @@ class MplCanvas(FigureCanvas):
 class MplWidget(QtWidgets.QWidget):
     def __init__(self, parent = None):
         QtWidgets.QWidget.__init__(self, parent)
-
         self.canvas = MplCanvas()
         self.ntb = NavigationToolbar(self.canvas, self)
         self.vbl = QtWidgets.QVBoxLayout()

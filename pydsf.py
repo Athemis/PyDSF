@@ -1,14 +1,18 @@
 #! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 import csv
+import random
 
 try:
     import matplotlib as mpl
+    #import mpl_toolkits.axes_grid
+    import mpl_toolkits.axes_grid1
 
     mpl.use('Qt5Agg')
+    mpl.interactive(True)
     import matplotlib.ticker as ticker
-    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import matplotlib.gridspec as gridspec
 except ImportError:
     raise ImportError('----- Matplotlib must be installed. -----')
 
@@ -436,9 +440,6 @@ def update_progress_bar(bar, value):
 
 class PlotResults():
 
-    def __init__(self, experiment):
-        self.experiment = experiment
-
     def plot_tm_heatmap_single(self, plate, widget):
         """
         Plot Tm heatmap (Fig. 1)
@@ -550,34 +551,85 @@ class PlotResults():
         """
         canvas = widget.canvas
         canvas.clear()
-        fig3 = canvas.fig  # new figure
-        fig3.suptitle('Raw Data (plate #{})'.format(str(plate.id)))  # set title
 
-        for plot_num in range(1, plate.wellnum + 1):  # iterate over all wells
-            well = plate.wells[plot_num - 1]  # get single well based on current plot number
-            ax = fig3.add_subplot(plate.rows, plate.cols, plot_num)  # add new subplot
-            ax.autoscale(tight=True)  # scale to data
-            ax.set_title(well.name, size='xx-small')  # set title of current subplot to well identifier
+        im = np.arange(100)
+        im.shape = 10, 10
 
-            if well in plate.denatured_wells:
-                ax.patch.set_facecolor('#FFD6D6')
+        fig = canvas.fig
+        fig.suptitle('Raw Data (plate #{})'.format(str(plate.id)))
 
-            if plot_num == plate.wellnum - plate.cols + 1:  # add axis label to the subplot in the bottom left corner of the figure
-                ax.set_xlabel(u'T [°C]', size='xx-small')
-                ax.set_ylabel('I', size='xx-small')
-
+        grid = mpl_toolkits.axes_grid1.Grid(fig, 111, nrows_ncols=(plate.rows, plate.cols), axes_pad=(0.1, 0.25), add_all=True, share_x=True, share_y=True, share_all=True)
+        for i in range(plate.wellnum):
+            well = plate.wells[i]
             x = plate.temprange  # set values for the x axis to the given temperature range
             y = well.raw  # grab y values from the raw data of the well
+            ax = grid[i]
 
+            #ax = fig.add_subplot(plate.rows, plate.cols, i+1)
+            ax.set_title(well.name, size=6)  # set title of current subplot to well identifier
+            if well in plate.denatured_wells:
+                ax.patch.set_facecolor('#FFD6D6')
             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))  # only show three tickmarks on both axes
             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
             ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8', alpha=0.5)  # shade lower cutoff area
             ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8', alpha=0.5)  # shade higher cutoff area
             for label in ax.get_xticklabels() + ax.get_yticklabels():  # set fontsize for all tick labels to xx-small
-                label.set_fontsize('xx-small')
-
-            cax = ax.plot(x, y)  # plot data to the current subplot
+                label.set_fontsize(6)
+            ax.plot(x, y)
+        fig.tight_layout()
         canvas.draw()
+
+            #ax = grid[i]
+            #ax.axhline(color='r')
+            #ax.autoscale(enable=True, axis='y', tight=True)
+            #ax.set_title(well.name, size='xx-small')
+            #ax.plot(x, 1000*np.random.random(76))
+            #ax.set_yscale('log')
+
+        #for plot_num in range(1, plate.wellnum + 1):
+        #    well = plate.wells[plot_num - 1]
+        #    #ax = fig.add_subplot(plate.rows, plate.cols, plot_num)
+        #    ax.autoscale(tight=True)
+        #    ax.plot(plate.temprange, well.raw)
+        #    ax.set_title(well.name, size='xx-small')
+        #    if well in plate.denatured_wells:
+        #        ax.patch.set_facecolor('#FFD6D6')
+
+
+
+        #for plot_num in range(1, plate.wellnum + 1):
+        #    ax = fig.add_subplot(plate.rows, plate.cols, plot_num)
+        #    ax.autoscale(tight=True)
+
+        # fig3 = canvas.fig  # new figure
+        # fig3.suptitle('Raw Data (plate #{})'.format(str(plate.id)))  # set title
+        #
+        # for plot_num in range(1, plate.wellnum + 1):  # iterate over all wells
+        #     well = plate.wells[plot_num - 1]  # get single well based on current plot number
+        #     ax = fig3.add_subplot(plate.rows, plate.cols, plot_num)  # add new subplot
+        #     ax = fig3.add_axes(plate.rows, plate.cols, plot_num)
+        #     ax.autoscale(tight=True)  # scale to data
+        #     ax.set_title(well.name, size='xx-small')  # set title of current subplot to well identifier
+        #
+        #     if well in plate.denatured_wells:
+        #         ax.patch.set_facecolor('#FFD6D6')
+        #
+        #     if plot_num == plate.wellnum - plate.cols + 1:  # add axis label to the subplot in the bottom left corner of the figure
+        #         ax.set_xlabel(u'T [°C]', size='xx-small')
+        #         ax.set_ylabel('I', size='xx-small')
+        #
+        #     x = plate.temprange  # set values for the x axis to the given temperature range
+        #     y = well.raw  # grab y values from the raw data of the well
+        #
+        #     ax.xaxis.set_major_locator(ticker.MaxNLocator(4))  # only show three tickmarks on both axes
+        #     ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
+        #     ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8', alpha=0.5)  # shade lower cutoff area
+        #     ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8', alpha=0.5)  # shade higher cutoff area
+        #     for label in ax.get_xticklabels() + ax.get_yticklabels():  # set fontsize for all tick labels to xx-small
+        #         label.set_fontsize('xx-small')
+        #
+        #     cax = ax.plot(x, y)  # plot data to the current subplot
+
 
 
     # def _plot_wrapper(self, plot, plate):

@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QCoreApplication
 from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg as
                                                 FigureCanvas)
 from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as
@@ -29,9 +30,14 @@ class MplCanvas(FigureCanvas):
 
 class CustomNavigationToolbar(NavigationToolbar):
     toolitems = (
-        ('Save', 'Save the figure', 'filesave', 'save_figure'),
-        ('Subplots', 'Configure subplots', 'subplots', 'configure_subplots'),
-        (None, None, None, None), )
+        (QCoreApplication.translate("CustomNavigationToolbar", 'Save'),
+         QCoreApplication.translate("CustomNavigationToolbar",
+                                    'Save the figure'), 'filesave',
+         'save_figure'),
+        (QCoreApplication.translate("CustomNavigationToolbar", 'Subplots'),
+         QCoreApplication.translate("CustomNavigationToolbar",
+                                    'Configure subplots'), 'subplots',
+         'configure_subplots'), (None, None, None, None), )
 
     def __init__(self, canvas, parent, coordinates=True):
         NavigationToolbar.__init__(self, canvas, parent,

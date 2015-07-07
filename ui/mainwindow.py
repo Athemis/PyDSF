@@ -13,11 +13,14 @@ from PyQt5.QtWidgets import (QMainWindow,
                              QDialogButtonBox,
                              QFileDialog,
                              QMessageBox,
-                             QApplication)
+                             QApplication,
+                             QScrollArea)
 
 from .Ui_mainwindow import Ui_MainWindow
-from .mplwidget import MplWidget
+import ui.libs.pyqtgraph as pg
 from pydsf import Experiment, PlotResults
+
+pg.setConfigOptions(antialias=True)
 
 VERSION = "1.0"
 
@@ -152,29 +155,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #        self.groupBox_signal_threshold.setEnabled(True)
 
     def generate_plot_tab(self, name):
-        tab = MplWidget()
+        tab = QScrollArea()
         tab.setObjectName(name)
+        tab.setWidgetResizable(True)
         return tab
 
     def generate_plate_tabs(self, plate):
+        # TODO: not implemented yet
+        # raise NotImplementedError
         plotter = PlotResults()
 
         if id != 'average':
-            tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
-            self.tabWidget.addTab(tab, "Heatmap #{}".format(plate.id))
-            plotter.plot_tm_heatmap_single(plate, tab)
+        #    tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
+        #    self.tabWidget.addTab(tab, "Heatmap #{}".format(plate.id))
+        #    plotter.plot_tm_heatmap_single(plate, tab)
 
             tab = self.generate_plot_tab("tab_raw_{}".format(id))
+            plt = pg.GraphicsLayoutWidget()
+            tab.setWidget(plt)
             self.tabWidget.addTab(tab, "Raw Data #{}".format(plate.id))
-            plotter.plot_raw(plate, tab)
+            plotter.plot_raw(plate, plt)
 
-            tab = self.generate_plot_tab("tab_derivative_{}".format(id))
-            self.tabWidget.addTab(tab, "Derivatives #{}".format(plate.id))
-            plotter.plot_derivative(plate, tab)
-        else:
-            tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
-            self.tabWidget.addTab(tab, "Heatmap ({})".format(plate.id))
-            plotter.plot_tm_heatmap_single(plate, tab)
+        #    tab = self.generate_plot_tab("tab_derivative_{}".format(id))
+        #    self.tabWidget.addTab(tab, "Derivatives #{}".format(plate.id))
+        #    plotter.plot_derivative(plate, tab)
+        #else:
+        #    tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
+        #    self.tabWidget.addTab(tab, "Heatmap ({})".format(plate.id))
+        #    plotter.plot_tm_heatmap_single(plate, tab)
 
     @pyqtSlot()
     def on_buttonBox_process_accepted(self):

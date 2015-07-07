@@ -478,22 +478,22 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="MplWidget" name="tab_raw">
+       <widget class="GraphicsLayoutWidget" name="tab_raw">
         <attribute name="title">
          <string>Raw Data</string>
         </attribute>
        </widget>
-       <widget class="MplWidget" name="tab_derivative">
+       <widget class="GraphicsLayoutWidget" name="tab_derivative">
         <attribute name="title">
          <string>&amp;2nd derivative</string>
         </attribute>
        </widget>
-       <widget class="MplWidget" name="tab_heatmap">
+       <widget class="GraphicsLayoutWidget" name="tab_heatmap">
         <attribute name="title">
          <string>Heatmap</string>
         </attribute>
        </widget>
-       <widget class="MplWidget" name="tab_heatmap_avg">
+       <widget class="GraphicsLayoutWidget" name="tab_heatmap_avg">
         <property name="enabled">
          <bool>false</bool>
         </property>
@@ -563,9 +563,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>MplWidget</class>
+   <class>GraphicsLayoutWidget</class>
    <extends>QWidget</extends>
-   <header>mplwidget</header>
+   <header>GraphicsLayoutWidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

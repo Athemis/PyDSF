@@ -300,5 +300,3 @@ class Ui_MainWindow(object):
         self.actionQuit.setText(_translate("MainWindow", "&Quit"))
         self.actionAbout.setText(_translate("MainWindow", "&About"))
         self.actionAbout_Qt.setText(_translate("MainWindow", "About &Qt"))
-
-from .mplwidget import MplWidget

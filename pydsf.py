@@ -6,15 +6,11 @@ import csv
 
 # Import 3rd party packages. Check if installed and die with error message
 # if not.
-try:
-    import matplotlib as mpl
-    import mpl_toolkits.axes_grid1
 
-    mpl.use('Qt5Agg')
-    mpl.interactive(True)
-    import matplotlib.ticker as ticker
+try:
+    import ui.libs.pyqtgraph as pg
 except ImportError:
-    raise ImportError('----- Matplotlib must be installed. -----')
+    raise ImportError('----- pyqtgraph must be installed. -----')
 
 try:
     import peakutils
@@ -532,177 +528,194 @@ def update_progress_bar(bar, value):
 
 class PlotResults():
 
-    def plot_tm_heatmap_single(self, plate, widget):
-        """
-        Plot Tm heatmap (Fig. 1)
-        """
-        x = 1  # Position in columns
-        y = 1  # Position in rows
-        x_values = []  # Array holding the columns
-        y_values = []  # Array holding the rows
-        c_values = []  # Array holding the color values aka Tm
-        dx_values = []
-        dy_values = []
-        canvas = widget.canvas
-        canvas.clear()
-        for well in plate.wells:  # Iterate over all wells
-            if well not in plate.denatured_wells:
-                # Check if well is denatured (no Tm found)
-                c = well.tm  # If not, set color to Tm
-                if c < plate.tm_cutoff_low:
-                    # Check if Tm is lower that the cutoff
-                    c = plate.tm_cutoff_low
-                    # If it is, set color to cutoff
-                elif c > plate.tm_cutoff_high:
-                    # Check if Tm is higher that the cutoff
-                    c = plate.tm_cutoff_high
-                    # If it is, set color to cutoff
-            else:  # If the plate is denatured
-                c = plate.tm_cutoff_low
-                # Set its color to the low cutoff
-                dx_values.append(x)
-                dy_values.append(y)
-            x_values.append(x)  # Add values to the respective arrays
-            y_values.append(y)
-            c_values.append(c)
-            x += 1  # Increase column by one
-            if x > plate.cols:  # If maximum column per row is reached
-                x = 1  # reset column to one
-                y += 1  # and increase row by one
-
-        fig1 = canvas.fig  # new figure
-        ax1 = fig1.add_subplot(1, 1, 1)  # A single canvas
-        ax1.autoscale(tight=True)  # Scale plate size
-        ax1.xaxis.set_major_locator(ticker.MaxNLocator(plate.cols + 1))
-        # n columns
-        ax1.yaxis.set_major_locator(ticker.MaxNLocator(plate.rows + 1))
-        # n rows
-        if plate.color_range:
-            # plot wells and color using the colormap
-            cax = ax1.scatter(x_values, y_values, s=305, c=c_values,
-                              marker='s', vmin=plate.color_range[0],
-                              vmax=plate.color_range[1])
-        else:
-            # plot wells and color using the colormap
-            cax = ax1.scatter(x_values, y_values, s=305, c=c_values,
-                              marker='s')
-
-        ax1.scatter(dx_values, dy_values, s=80, c='white', marker='x',
-                    linewidths=(1.5,))
-        ax1.invert_yaxis()  # invert y axis to math plate layout
-        cbar = fig1.colorbar(cax)  # show colorbar
-        ax1.set_xlabel('Columns')  # set axis and colorbar label
-        ax1.set_ylabel('Rows')
-
-        if str(plate.id) == 'average':
-            title = '$T_m$ heatmap (average)'
-        else:
-            title = '$T_m$ heatmap (plate #{})'.format(str(plate.id))
-        ax1.set_title(title)
-        cbar.set_label(u"Temperature [°C]")
-
-        canvas.draw()
-
-    def plot_derivative(self, plate, widget):
-        """
-        Plot derivatives (Fig. 2)
-        """
-        canvas = widget.canvas
-        canvas.clear()
-        fig2 = canvas.fig  # new figure
-        # set title
-        fig2.suptitle(
-            'Individual Derivatives (plate #{})'.format(str(plate.id)))
-
-        for plot_num in range(1, plate.wellnum + 1):  # iterate over all wells
-            well = plate.wells[plot_num - 1]
-            # get single well based on current plot number
-            ax = fig2.add_subplot(plate.rows, plate.cols, plot_num)
-            # add new subplot
-            ax.autoscale(tight=True)  # scale to data
-            ax.set_title(well.name, size='xx-small')
-            # set title of current subplot to well identifier
-
-            if well in plate.denatured_wells:
-                ax.patch.set_facecolor('#FFD6D6')
-            # add axis label to the subplot in the bottom left corner of the
-            # figure
-            if plot_num == plate.wellnum - plate.cols + 1:
-                ax.set_xlabel(u'T [°C]', size='xx-small')
-                ax.set_ylabel('dI/dT', size='xx-small')
-
-            # set values for the x axis to the given temperature range
-            x = plate.temprange
-            if well.baseline_correction:
-                print(well.baseline)
-                y = well.derivatives[1] - well.baseline
-            else:
-                # grab y values from the first derivative of the well
-                y = well.derivatives[1]
-
-            # only show three tickmarks on both axes
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            # check if well is denatured (without determined Tm)
-            if well not in plate.denatured_wells:
-                tm = well.tm  # if not, grab its Tm
-            else:
-                tm = np.NaN  # else set Tm to np.NaN
-            if tm:
-                ax.axvline(x=tm)  # plot vertical line at the Tm
-            ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8',
-                       alpha=0.5)  # shade lower cutoff area
-            ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8',
-                       alpha=0.5)  # shade higher cutoff area
-            # set fontsize for all tick labels to xx-small
-            for label in ax.get_xticklabels() + ax.get_yticklabels():
-                label.set_fontsize('xx-small')
-
-            ax.plot(x, y)  # plot data to the current subplot
-        canvas.draw()
-
     def plot_raw(self, plate, widget):
-        """
-        Plot raw data (Fig. 3)
-        """
-        canvas = widget.canvas
-        canvas.clear()
-
-        im = np.arange(100)
-        im.shape = 10, 10
-
-        fig = canvas.fig
-        fig.suptitle('Raw Data (plate #{})'.format(str(plate.id)))
-
-        grid = mpl_toolkits.axes_grid1.Grid(fig, 111,
-                                            nrows_ncols=(plate.rows,
-                                                         plate.cols),
-                                            axes_pad=(0.1, 0.25),
-                                            add_all=True,
-                                            share_x=True,
-                                            share_y=True,
-                                            share_all=True)
+        n = 0
         for i in range(plate.wellnum):
             well = plate.wells[i]
             # set values for the x axis to the given temperature range
             x = plate.temprange
             # grab y values from the raw data of the well
             y = well.raw
-            ax = grid[i]
-            # set title of current subplot to well identifier
-            ax.set_title(well.name, size=6)
-            if well in plate.denatured_wells:
-                ax.patch.set_facecolor('#FFD6D6')
-            # only show three tickmarks on both axes
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8',
-                       alpha=0.5)  # shade lower cutoff area
-            ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8',
-                       alpha=0.5)  # shade higher cutoff area
-            # set fontsize for all tick labels to xx-small
-            for label in ax.get_xticklabels() + ax.get_yticklabels():
-                label.set_fontsize(6)
-            ax.plot(x, y)
-        fig.tight_layout()
-        canvas.draw()
+            print(well.name)
+            if n == plate.cols:
+                print("next row")
+                widget.nextRow()
+                n = 0
+            n += 1
+            p1 = widget.addPlot(title=well.name, x=x, y=well.raw)
+
+
+#     def plot_tm_heatmap_single(self, plate, widget):
+#         """
+#         Plot Tm heatmap (Fig. 1)
+#         """
+#         x = 1  # Position in columns
+#         y = 1  # Position in rows
+#         x_values = []  # Array holding the columns
+#         y_values = []  # Array holding the rows
+#         c_values = []  # Array holding the color values aka Tm
+#         dx_values = []
+#         dy_values = []
+#         canvas = widget.canvas
+#         canvas.clear()
+#         for well in plate.wells:  # Iterate over all wells
+#             if well not in plate.denatured_wells:
+#                 # Check if well is denatured (no Tm found)
+#                 c = well.tm  # If not, set color to Tm
+#                 if c < plate.tm_cutoff_low:
+#                     # Check if Tm is lower that the cutoff
+#                     c = plate.tm_cutoff_low
+#                     # If it is, set color to cutoff
+#                 elif c > plate.tm_cutoff_high:
+#                     # Check if Tm is higher that the cutoff
+#                     c = plate.tm_cutoff_high
+#                     # If it is, set color to cutoff
+#             else:  # If the plate is denatured
+#                 c = plate.tm_cutoff_low
+#                 # Set its color to the low cutoff
+#                 dx_values.append(x)
+#                 dy_values.append(y)
+#             x_values.append(x)  # Add values to the respective arrays
+#             y_values.append(y)
+#             c_values.append(c)
+#             x += 1  # Increase column by one
+#             if x > plate.cols:  # If maximum column per row is reached
+#                 x = 1  # reset column to one
+#                 y += 1  # and increase row by one
+#
+#         fig1 = canvas.fig  # new figure
+#         ax1 = fig1.add_subplot(1, 1, 1)  # A single canvas
+#         ax1.autoscale(tight=True)  # Scale plate size
+#         ax1.xaxis.set_major_locator(ticker.MaxNLocator(plate.cols + 1))
+#         # n columns
+#         ax1.yaxis.set_major_locator(ticker.MaxNLocator(plate.rows + 1))
+#         # n rows
+#         if plate.color_range:
+#             # plot wells and color using the colormap
+#             cax = ax1.scatter(x_values, y_values, s=305, c=c_values,
+#                               marker='s', vmin=plate.color_range[0],
+#                               vmax=plate.color_range[1])
+#         else:
+#             # plot wells and color using the colormap
+#             cax = ax1.scatter(x_values, y_values, s=305, c=c_values,
+#                               marker='s')
+#
+#         ax1.scatter(dx_values, dy_values, s=80, c='white', marker='x',
+#                     linewidths=(1.5,))
+#         ax1.invert_yaxis()  # invert y axis to math plate layout
+#         cbar = fig1.colorbar(cax)  # show colorbar
+#         ax1.set_xlabel('Columns')  # set axis and colorbar label
+#         ax1.set_ylabel('Rows')
+#
+#         if str(plate.id) == 'average':
+#             title = '$T_m$ heatmap (average)'
+#         else:
+#             title = '$T_m$ heatmap (plate #{})'.format(str(plate.id))
+#         ax1.set_title(title)
+#         cbar.set_label(u"Temperature [°C]")
+#
+#         canvas.draw()
+#
+#     def plot_derivative(self, plate, widget):
+#         """
+#         Plot derivatives (Fig. 2)
+#         """
+#         canvas = widget.canvas
+#         canvas.clear()
+#         fig2 = canvas.fig  # new figure
+#         # set title
+#         fig2.suptitle(
+#             'Individual Derivatives (plate #{})'.format(str(plate.id)))
+#
+#         for plot_num in range(1, plate.wellnum + 1):  # iterate over all wells
+#             well = plate.wells[plot_num - 1]
+#             # get single well based on current plot number
+#             ax = fig2.add_subplot(plate.rows, plate.cols, plot_num)
+#             # add new subplot
+#             ax.autoscale(tight=True)  # scale to data
+#             ax.set_title(well.name, size='xx-small')
+#             # set title of current subplot to well identifier
+#
+#             if well in plate.denatured_wells:
+#                 ax.patch.set_facecolor('#FFD6D6')
+#             # add axis label to the subplot in the bottom left corner of the
+#             # figure
+#             if plot_num == plate.wellnum - plate.cols + 1:
+#                 ax.set_xlabel(u'T [°C]', size='xx-small')
+#                 ax.set_ylabel('dI/dT', size='xx-small')
+#
+#             # set values for the x axis to the given temperature range
+#             x = plate.temprange
+#             if well.baseline_correction:
+#                 print(well.baseline)
+#                 y = well.derivatives[1] - well.baseline
+#             else:
+#                 # grab y values from the first derivative of the well
+#                 y = well.derivatives[1]
+#
+#             # only show three tickmarks on both axes
+#             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
+#             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
+#             # check if well is denatured (without determined Tm)
+#             if well not in plate.denatured_wells:
+#                 tm = well.tm  # if not, grab its Tm
+#             else:
+#                 tm = np.NaN  # else set Tm to np.NaN
+#             if tm:
+#                 ax.axvline(x=tm)  # plot vertical line at the Tm
+#             ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8',
+#                        alpha=0.5)  # shade lower cutoff area
+#             ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8',
+#                        alpha=0.5)  # shade higher cutoff area
+#             # set fontsize for all tick labels to xx-small
+#             for label in ax.get_xticklabels() + ax.get_yticklabels():
+#                 label.set_fontsize('xx-small')
+#
+#             ax.plot(x, y)  # plot data to the current subplot
+#         canvas.draw()
+#
+#     def plot_raw(self, plate, widget):
+#         """
+#         Plot raw data (Fig. 3)
+#         """
+#         canvas = widget.canvas
+#         canvas.clear()
+#
+#         im = np.arange(100)
+#         im.shape = 10, 10
+#
+#         fig = canvas.fig
+#         fig.suptitle('Raw Data (plate #{})'.format(str(plate.id)))
+#
+#         grid = mpl_toolkits.axes_grid1.Grid(fig, 111,
+#                                             nrows_ncols=(plate.rows,
+#                                                          plate.cols),
+#                                             axes_pad=(0.1, 0.25),
+#                                             add_all=True,
+#                                             share_x=True,
+#                                             share_y=True,
+#                                             share_all=True)
+#         for i in range(plate.wellnum):
+#             well = plate.wells[i]
+#             # set values for the x axis to the given temperature range
+#             x = plate.temprange
+#             # grab y values from the raw data of the well
+#             y = well.raw
+#             ax = grid[i]
+#             # set title of current subplot to well identifier
+#             ax.set_title(well.name, size=6)
+#             if well in plate.denatured_wells:
+#                 ax.patch.set_facecolor('#FFD6D6')
+#             # only show three tickmarks on both axes
+#             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
+#             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
+#             ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8',
+#                        alpha=0.5)  # shade lower cutoff area
+#             ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8',
+#                        alpha=0.5)  # shade higher cutoff area
+#             # set fontsize for all tick labels to xx-small
+#             for label in ax.get_xticklabels() + ax.get_yticklabels():
+#                 label.set_fontsize(6)
+#             ax.plot(x, y)
+#         fig.tight_layout()
+#         canvas.draw()

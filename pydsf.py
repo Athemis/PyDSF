@@ -38,15 +38,14 @@ class Well:
     Represents a well in a microtiter plate.
     Owned by an object of type 'Plate'.
     """
+
     def __init__(self, owner, name=None):
         self.owner = owner
         self.name = name
         self.raw = np.zeros(self.owner.reads, dtype=np.float)
         self.filtered = np.zeros(self.owner.reads, dtype=np.float)
         self.derivatives = np.zeros((4, self.owner.reads))
-        self.splines = {"raw": None,
-                        "filtered": None,
-                        "derivative1": None}
+        self.splines = {"raw": None, "filtered": None, "derivative1": None}
         self.tm = np.NaN
         self.tm_sd = np.NaN
         self.baseline_correction = owner.baseline_correction
@@ -115,8 +114,7 @@ class Well:
         if (self.owner.tm_cutoff_low != self.owner.t1 or
                 self.owner.tm_cutoff_high != self.owner.t1):
             x = np.arange(self.owner.tm_cutoff_low,
-                          self.owner.tm_cutoff_high + 1,
-                          self.owner.dt,
+                          self.owner.tm_cutoff_high + 1, self.owner.dt,
                           dtype=np.dtype(np.float))
         # Otherwise use the whole temperature range of the data
         else:
@@ -158,7 +156,8 @@ class Well:
         try:
             if (tm and tm >= self.owner.tm_cutoff_low and
                     tm <= self.owner.tm_cutoff_high):
-                tm = round(peakutils.interpolate(x, y, width=3,
+                tm = round(peakutils.interpolate(x, y,
+                                                 width=3,
                                                  ind=[max_i])[0], 2)
                 self.owner.denatured_wells.remove(self)
                 # If everything is fine, remove the denatured flag
@@ -240,9 +239,19 @@ class Well:
 
 
 class Experiment:
-    def __init__(self, exp_type, gui=None, files=None, replicates=None, t1=25,
-                 t2=95, dt=1, cols=12, rows=8, cutoff_low=None,
-                 cutoff_high=None, signal_threshold=None, color_range=None,
+    def __init__(self, exp_type,
+                 gui=None,
+                 files=None,
+                 replicates=None,
+                 t1=25,
+                 t2=95,
+                 dt=1,
+                 cols=12,
+                 rows=8,
+                 cutoff_low=None,
+                 cutoff_high=None,
+                 signal_threshold=None,
+                 color_range=None,
                  baseline_correction=False):
         self.replicates = replicates
         self.cols = cols
@@ -284,9 +293,15 @@ class Experiment:
         # populate self.plates with data in provided files list
         i = 1
         for file in files:
-            plate = Plate(plate_type=self.type, owner=self, filename=file,
-                          t1=self.t1, t2=self.t2, dt=self.dt, cols=self.cols,
-                          rows=self.rows, cutoff_low=self.tm_cutoff_low,
+            plate = Plate(plate_type=self.type,
+                          owner=self,
+                          filename=file,
+                          t1=self.t1,
+                          t2=self.t2,
+                          dt=self.dt,
+                          cols=self.cols,
+                          rows=self.rows,
+                          cutoff_low=self.tm_cutoff_low,
                           cutoff_high=self.tm_cutoff_high,
                           signal_threshold=self.signal_threshold,
                           color_range=self.color_range)
@@ -296,9 +311,14 @@ class Experiment:
         # if more than one file is provied, assume that those are replicates
         # and add a special plate representing the average results
         if len(files) > 1:
-            self.avg_plate = Plate(plate_type=self.type, owner=self,
-                                   filename=None, t1=self.t1, t2=self.t2,
-                                   dt=self.dt, cols=self.cols, rows=self.rows,
+            self.avg_plate = Plate(plate_type=self.type,
+                                   owner=self,
+                                   filename=None,
+                                   t1=self.t1,
+                                   t2=self.t2,
+                                   dt=self.dt,
+                                   cols=self.cols,
+                                   rows=self.rows,
                                    cutoff_low=self.tm_cutoff_low,
                                    cutoff_high=self.tm_cutoff_high,
                                    signal_threshold=self.signal_threshold,
@@ -337,9 +357,18 @@ class Experiment:
 
 
 class Plate:
-    def __init__(self, plate_type, owner, plate_id=None, filename=None,
-                 replicates=None, t1=None, t2=None, dt=None, cols=12, rows=8,
-                 cutoff_low=None, cutoff_high=None, signal_threshold=None,
+    def __init__(self, plate_type, owner,
+                 plate_id=None,
+                 filename=None,
+                 replicates=None,
+                 t1=None,
+                 t2=None,
+                 dt=None,
+                 cols=12,
+                 rows=8,
+                 cutoff_low=None,
+                 cutoff_high=None,
+                 signal_threshold=None,
                  color_range=None):
         self.cols = cols
         self.rows = rows
@@ -453,13 +482,11 @@ class Plate:
 
     def write_avg_tm_table(self, filename):
         with open(filename, 'w') as f:
-            f.write('#{:<4s}{:>13s}{:>13s}\n'.format('"ID"',
-                                                     '"Tm [°C]"',
+            f.write('#{:<4s}{:>13s}{:>13s}\n'.format('"ID"', '"Tm [°C]"',
                                                      '"SD"'))
             for well in self.wells:
                 if np.isnan(well.tm) or well in self.denatured_wells:
-                    f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name,
-                                                            'NaN',
+                    f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name, 'NaN',
                                                             'NaN'))
                 else:
                     f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name,
@@ -531,7 +558,6 @@ def update_progress_bar(bar, value):
 
 
 class PlotResults():
-
     def plot_tm_heatmap_single(self, plate, widget):
         """
         Plot Tm heatmap (Fig. 1)
@@ -579,16 +605,24 @@ class PlotResults():
         # n rows
         if plate.color_range:
             # plot wells and color using the colormap
-            cax = ax1.scatter(x_values, y_values, s=305, c=c_values,
-                              marker='s', vmin=plate.color_range[0],
+            cax = ax1.scatter(x_values, y_values,
+                              s=305,
+                              c=c_values,
+                              marker='s',
+                              vmin=plate.color_range[0],
                               vmax=plate.color_range[1])
         else:
             # plot wells and color using the colormap
-            cax = ax1.scatter(x_values, y_values, s=305, c=c_values,
+            cax = ax1.scatter(x_values, y_values,
+                              s=305,
+                              c=c_values,
                               marker='s')
 
-        ax1.scatter(dx_values, dy_values, s=80, c='white', marker='x',
-                    linewidths=(1.5,))
+        ax1.scatter(dx_values, dy_values,
+                    s=80,
+                    c='white',
+                    marker='x',
+                    linewidths=(1.5, ))
         ax1.invert_yaxis()  # invert y axis to math plate layout
         cbar = fig1.colorbar(cax)  # show colorbar
         ax1.set_xlabel('Columns')  # set axis and colorbar label
@@ -609,37 +643,34 @@ class PlotResults():
         """
         canvas = widget.canvas
         canvas.clear()
-        fig2 = canvas.fig  # new figure
+        fig = canvas.fig  # new figure
         # set title
-        fig2.suptitle(
+        fig.suptitle(
             'Individual Derivatives (plate #{})'.format(str(plate.id)))
 
-        for plot_num in range(1, plate.wellnum + 1):  # iterate over all wells
-            well = plate.wells[plot_num - 1]
-            # get single well based on current plot number
-            ax = fig2.add_subplot(plate.rows, plate.cols, plot_num)
-            # add new subplot
-            ax.autoscale(tight=True)  # scale to data
-            ax.set_title(well.name, size='xx-small')
-            # set title of current subplot to well identifier
+        grid = mpl_toolkits.axes_grid1.Grid(
+            fig, 111,
+            nrows_ncols=(plate.rows, plate.cols),
+            axes_pad=(0.15, 0.25),
+            add_all=True,
+            share_all=True)
 
-            if well in plate.denatured_wells:
-                ax.patch.set_facecolor('#FFD6D6')
-            # add axis label to the subplot in the bottom left corner of the
-            # figure
-            if plot_num == plate.wellnum - plate.cols + 1:
-                ax.set_xlabel(u'T [°C]', size='xx-small')
-                ax.set_ylabel('dI/dT', size='xx-small')
-
+        for i in range(plate.wellnum):
+            well = plate.wells[i]
             # set values for the x axis to the given temperature range
             x = plate.temprange
+            # grab y values from the raw data of the well
             if well.baseline_correction:
                 print(well.baseline)
                 y = well.derivatives[1] - well.baseline
             else:
                 # grab y values from the first derivative of the well
                 y = well.derivatives[1]
-
+            ax = grid[i]
+            # set title of current subplot to well identifier
+            ax.set_title(well.name, size=6)
+            if well in plate.denatured_wells:
+                ax.patch.set_facecolor('#FFD6D6')
             # only show three tickmarks on both axes
             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
@@ -650,15 +681,20 @@ class PlotResults():
                 tm = np.NaN  # else set Tm to np.NaN
             if tm:
                 ax.axvline(x=tm)  # plot vertical line at the Tm
-            ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8',
+            ax.axvspan(plate.t1, plate.tm_cutoff_low,
+                       facecolor='0.8',
                        alpha=0.5)  # shade lower cutoff area
-            ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8',
+            ax.axvspan(plate.tm_cutoff_high, plate.t2,
+                       facecolor='0.8',
                        alpha=0.5)  # shade higher cutoff area
             # set fontsize for all tick labels to xx-small
             for label in ax.get_xticklabels() + ax.get_yticklabels():
-                label.set_fontsize('xx-small')
-
-            ax.plot(x, y)  # plot data to the current subplot
+                label.set_fontsize(6)
+            ax.plot(x, y)
+            # if plot_num == plate.wellnum - plate.cols + 1:
+            #     ax.set_xlabel(u'T [°C]', size='xx-small')
+            #     ax.set_ylabel(u'dI/dT', size='xx-small')
+        fig.tight_layout()
         canvas.draw()
 
     def plot_raw(self, plate, widget):
@@ -668,20 +704,15 @@ class PlotResults():
         canvas = widget.canvas
         canvas.clear()
 
-        im = np.arange(100)
-        im.shape = 10, 10
-
         fig = canvas.fig
         fig.suptitle('Raw Data (plate #{})'.format(str(plate.id)))
 
-        grid = mpl_toolkits.axes_grid1.Grid(fig, 111,
-                                            nrows_ncols=(plate.rows,
-                                                         plate.cols),
-                                            axes_pad=(0.1, 0.25),
-                                            add_all=True,
-                                            share_x=True,
-                                            share_y=True,
-                                            share_all=True)
+        grid = mpl_toolkits.axes_grid1.Grid(
+            fig, 111,
+            nrows_ncols=(plate.rows, plate.cols),
+            axes_pad=(0.15, 0.25),
+            add_all=True,
+            share_all=True)
         for i in range(plate.wellnum):
             well = plate.wells[i]
             # set values for the x axis to the given temperature range
@@ -696,9 +727,11 @@ class PlotResults():
             # only show three tickmarks on both axes
             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            ax.axvspan(plate.t1, plate.tm_cutoff_low, facecolor='0.8',
+            ax.axvspan(plate.t1, plate.tm_cutoff_low,
+                       facecolor='0.8',
                        alpha=0.5)  # shade lower cutoff area
-            ax.axvspan(plate.tm_cutoff_high, plate.t2, facecolor='0.8',
+            ax.axvspan(plate.tm_cutoff_high, plate.t2,
+                       facecolor='0.8',
                        alpha=0.5)  # shade higher cutoff area
             # set fontsize for all tick labels to xx-small
             for label in ax.get_xticklabels() + ax.get_yticklabels():

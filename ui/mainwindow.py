@@ -3,22 +3,98 @@
 """
 Module implementing MainWindow.
 """
-
-VERSION = "1.0"
-
-from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import (pyqtSlot,
+                          QObject,
+                          pyqtSignal,
+                          QThreadPool,
+                          QRunnable,)
+from PyQt5.QtWidgets import (QMainWindow,
+                             QProgressBar,
+                             QDialogButtonBox,
+                             QFileDialog,
+                             QMessageBox,
+                             QApplication)
 
 from .Ui_mainwindow import Ui_MainWindow
 from .mplwidget import MplWidget
-from pydsf import *
+from pydsf import Experiment, PlotResults
 
-class ProcessData(QObject):
+VERSION = "1.0"
+
+
+class WorkerSignals(QObject):
+
     finished = pyqtSignal()
 
-    def process(self):
-        raise NotImplementedError
 
+class Worker(QRunnable):
+    finished = pyqtSignal(int)
+
+    def __init__(self, owner):
+        super(Worker, self).__init__()
+        self.exp = None
+        self.owner = owner
+        self.signals = WorkerSignals()
+
+    def run(self):
+        c_lower = None
+        c_upper = None
+        cbar_range = None
+        signal_threshold = None
+        instrument_type = self.owner.comboBox_instrument.currentText()
+        if self.owner.groupBox_cutoff.isChecked():
+            c_lower = self.owner.doubleSpinBox_lower.value()
+            c_upper = self.owner.doubleSpinBox_upper.value()
+        if self.owner.groupBox_cbar.isChecked():
+            cbar_range = (self.owner.doubleSpinBox_cbar_start, self.owner.doubleSpinBox_cbar_end)
+        if self.owner.groupBox_signal_threshold.isChecked():
+            signal_threshold = self.owner.spinBox_signal_threshold.value()
+
+        items = (self.owner.listWidget_data.item(i) for i in range(self.owner.listWidget_data.count()))
+
+        files = []
+        for item in items:
+            files.append(item.text())
+        self.exp = Experiment(exp_type=instrument_type, files=files, t1=self.owner.doubleSpinBox_tmin.value(), t2=self.owner.doubleSpinBox_tmax.value(),
+                              dt=self.owner.doubleSpinBox_dt.value(), cols=12, rows=8, cutoff_low=c_lower, cutoff_high=c_upper,
+                              signal_threshold=signal_threshold, color_range=cbar_range)
+        print("Start processing of data... ")
+        self.exp.analyze()
+        print("done!")
+        self.signals.finished.emit()
+
+
+class TaskSignals(QObject):
+    finished = pyqtSignal(list)
+
+
+class Tasks(QObject):
+    def __init__(self):
+        super(Tasks, self).__init__()
+
+        self.pool = QThreadPool()
+        self.pool.setMaxThreadCount(1)
+        self.tasks = []
+        self.data = []
+        self.signals = TaskSignals()
+
+    def add_task(self, task):
+        self.tasks.append(task)
+
+    def get_data(self):
+        self.pool.waitForDone()
+        return self.data
+
+    def start(self):
+        for task in self.tasks:
+            self.pool.start(task)
+        self.pool.waitForDone()
+
+        for task in self.tasks:
+            self.data.append(task.exp)
+
+        print(self.data)
+        self.signals.finished.emit(self.data)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -43,8 +119,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.buttonBox_process.addButton("&Start Processing", QDialogButtonBox.AcceptRole)
 
-
-
     @pyqtSlot("QAbstractButton*")
     def on_buttonBox_open_reset_clicked(self, button):
         """
@@ -61,7 +135,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print("Data cleared")
         # self.radioButton_rep_rows.setEnabled(False)
         #            self.radioButton_rep_columns.setEnabled(False)
-
 
     @pyqtSlot("QString")
     def on_comboBox_instrument_currentIndexChanged(self, p0):
@@ -94,6 +167,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             tab = self.generate_plot_tab("tab_raw_{}".format(id))
             self.tabWidget.addTab(tab, "Raw Data #{}".format(plate.id))
             plotter.plot_raw(plate, tab)
+
+            tab = self.generate_plot_tab("tab_derivative_{}".format(id))
+            self.tabWidget.addTab(tab, "Derivatives #{}".format(plate.id))
+            plotter.plot_derivative(plate, tab)
         else:
             tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
             self.tabWidget.addTab(tab, "Heatmap ({})".format(plate.id))
@@ -115,32 +192,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBar.setEnabled(True)
         self.statusBar.showMessage("Processing...")
 
-        c_lower = None
-        c_upper = None
-        cbar_range = None
-        signal_threshold = None
-        type = self.comboBox_instrument.currentText()
-        if self.groupBox_cutoff.isChecked():
-            c_lower = self.doubleSpinBox_lower.value()
-            c_upper = self.doubleSpinBox_upper.value()
-        if self.groupBox_cbar.isChecked():
-            cbar_range = (self.doubleSpinBox_cbar_start, self.doubleSpinBox_cbar_end)
-        if self.groupBox_signal_threshold.isChecked():
-            signal_threshold = self.spinBox_signal_threshold.value()
+        self.tasks = Tasks()
+        self.tasks.signals.finished.connect(self.on_processing_finished)
+        self.worker = Worker(self)
+        self.tasks.add_task(self.worker)
+        self.tasks.start()
 
-        items = (self.listWidget_data.item(i) for i in range(self.listWidget_data.count()))
+    @pyqtSlot()
+    def on_processing_finished(self):
+        # For now, only read the first entry
+        exp = self.tasks.data[0]
 
-        files = []
-        for item in items:
-            files.append(item.text())
-        exp = Experiment(type=type, files=files, t1=self.doubleSpinBox_tmin.value(), t2=self.doubleSpinBox_tmax.value(),
-                         dt=self.doubleSpinBox_dt.value(), cols=12, rows=8, cutoff_low=c_lower, cutoff_high=c_upper,
-                         signal_threshold=signal_threshold, color_range=cbar_range)
-        exp.analyze()
-
-        # plate = Plate(type=type, filename=self.lineEdit_data_file.text(), t1=self.doubleSpinBox_tmin.value(), t2=self.doubleSpinBox_tmax.value(), dt=self.doubleSpinBox_dt.value(), cols=12, rows=8,  cutoff_low=c_lower,  cutoff_high=c_upper,  signal_threshold=signal_threshold,  color_range=cbar_range)
-        # self.statusBar.addWidget(self.pb, 100)
-        # plate.analyze(gui=self)
         save_data = QMessageBox.question(self, 'Save data', "Calculations are finished. Save results?",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if save_data == QMessageBox.Yes:
@@ -154,10 +216,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 plate.write_raw_table('{}/plate_{}_01_raw_data.csv'.format(folder, str(plate.id)))
 
             if exp.avg_plate:
-                exp.avg_plate.write_avg_tm_table('{}/plate_{}_05_tm_avg.csv'.format(folder, str(exp.avg_plate.id)))
-                #plot(plate, self)
+                exp.avg_plate.write_avg_tm_table('{}/plate_{}_05_tm_avg.csv'.format(folder, str(self.worker.exp.avg_plate.id)))
 
-        for i in range(len(exp.plates)):
+        for i in range(len(self.worker.exp.plates)):
 
             plate = exp.plates[i]
             self.generate_plate_tabs(plate)
@@ -167,36 +228,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             plate = exp.avg_plate
             self.generate_plate_tabs(plate)
 
-
-
-
-
-
-
-        #for i in range(self.tabWidget.count()):
-        #    for plate in exp.plates:
-        #        if i == 0:
-        #            plotter.plot_raw(plate, self.tabWidget.widget(i))
-        #            self.tabWidget.setTabText(i, "Raw Data #{}".format(plate.id))
-                #elif i == 1:
-                #    plotter.plot_derivative(plate, self.tabWidget.widget(i))
-                #elif i == 2:
-                #    plotter.plot_tm_heatmap_single(plate, self.tabWidget.widget(i))
-                #elif exp.avg_plate and i == 3:
-                #    plotter.plot_tm_heatmap_single(exp.avg_plate, self.tabWidget.widget(i))
-                #    self.tabWidget.setTabEnabled(i, True)
-                #else:
-                #    self.tabWidget.setTabEnabled(i, False)
-
-        #fig, ax = figures[0]
-        #self.tabWidget.widget(0).canvas.fig = fig
-        #self.tabWidget.widget(0).canvas.ax = ax
-
-        #self.tabWidget.widget(0).canvas.draw()
-
         self.progressBar.setEnabled(False)
         self.statusBar.showMessage("Finished!")
-
 
     @pyqtSlot()
     def on_buttonBox_process_rejected(self):
@@ -235,4 +268,3 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Slot documentation goes here.
         """
         QApplication.aboutQt()
-

@@ -20,7 +20,10 @@ from .Ui_mainwindow import Ui_MainWindow
 import ui.libs.pyqtgraph as pg
 from pydsf import Experiment, PlotResults
 
-pg.setConfigOptions(antialias=True)
+# pg.setConfigOptions(antialias=True)
+# Switch to using white background and black foreground
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
 
 VERSION = "1.0"
 
@@ -157,7 +160,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def generate_plot_tab(self, name):
         tab = QScrollArea()
         tab.setObjectName(name)
-        tab.setWidgetResizable(True)
+        tab.setWidgetResizable(False)
         return tab
 
     def generate_plate_tabs(self, plate):

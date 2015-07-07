@@ -34,15 +34,14 @@ class Well:
     Represents a well in a microtiter plate.
     Owned by an object of type 'Plate'.
     """
+
     def __init__(self, owner, name=None):
         self.owner = owner
         self.name = name
         self.raw = np.zeros(self.owner.reads, dtype=np.float)
         self.filtered = np.zeros(self.owner.reads, dtype=np.float)
         self.derivatives = np.zeros((4, self.owner.reads))
-        self.splines = {"raw": None,
-                        "filtered": None,
-                        "derivative1": None}
+        self.splines = {"raw": None, "filtered": None, "derivative1": None}
         self.tm = np.NaN
         self.tm_sd = np.NaN
         self.baseline_correction = owner.baseline_correction
@@ -111,8 +110,7 @@ class Well:
         if (self.owner.tm_cutoff_low != self.owner.t1 or
                 self.owner.tm_cutoff_high != self.owner.t1):
             x = np.arange(self.owner.tm_cutoff_low,
-                          self.owner.tm_cutoff_high + 1,
-                          self.owner.dt,
+                          self.owner.tm_cutoff_high + 1, self.owner.dt,
                           dtype=np.dtype(np.float))
         # Otherwise use the whole temperature range of the data
         else:
@@ -154,7 +152,8 @@ class Well:
         try:
             if (tm and tm >= self.owner.tm_cutoff_low and
                     tm <= self.owner.tm_cutoff_high):
-                tm = round(peakutils.interpolate(x, y, width=3,
+                tm = round(peakutils.interpolate(x, y,
+                                                 width=3,
                                                  ind=[max_i])[0], 2)
                 self.owner.denatured_wells.remove(self)
                 # If everything is fine, remove the denatured flag
@@ -236,9 +235,19 @@ class Well:
 
 
 class Experiment:
-    def __init__(self, exp_type, gui=None, files=None, replicates=None, t1=25,
-                 t2=95, dt=1, cols=12, rows=8, cutoff_low=None,
-                 cutoff_high=None, signal_threshold=None, color_range=None,
+    def __init__(self, exp_type,
+                 gui=None,
+                 files=None,
+                 replicates=None,
+                 t1=25,
+                 t2=95,
+                 dt=1,
+                 cols=12,
+                 rows=8,
+                 cutoff_low=None,
+                 cutoff_high=None,
+                 signal_threshold=None,
+                 color_range=None,
                  baseline_correction=False):
         self.replicates = replicates
         self.cols = cols
@@ -280,9 +289,15 @@ class Experiment:
         # populate self.plates with data in provided files list
         i = 1
         for file in files:
-            plate = Plate(plate_type=self.type, owner=self, filename=file,
-                          t1=self.t1, t2=self.t2, dt=self.dt, cols=self.cols,
-                          rows=self.rows, cutoff_low=self.tm_cutoff_low,
+            plate = Plate(plate_type=self.type,
+                          owner=self,
+                          filename=file,
+                          t1=self.t1,
+                          t2=self.t2,
+                          dt=self.dt,
+                          cols=self.cols,
+                          rows=self.rows,
+                          cutoff_low=self.tm_cutoff_low,
                           cutoff_high=self.tm_cutoff_high,
                           signal_threshold=self.signal_threshold,
                           color_range=self.color_range)
@@ -292,9 +307,14 @@ class Experiment:
         # if more than one file is provied, assume that those are replicates
         # and add a special plate representing the average results
         if len(files) > 1:
-            self.avg_plate = Plate(plate_type=self.type, owner=self,
-                                   filename=None, t1=self.t1, t2=self.t2,
-                                   dt=self.dt, cols=self.cols, rows=self.rows,
+            self.avg_plate = Plate(plate_type=self.type,
+                                   owner=self,
+                                   filename=None,
+                                   t1=self.t1,
+                                   t2=self.t2,
+                                   dt=self.dt,
+                                   cols=self.cols,
+                                   rows=self.rows,
                                    cutoff_low=self.tm_cutoff_low,
                                    cutoff_high=self.tm_cutoff_high,
                                    signal_threshold=self.signal_threshold,
@@ -333,9 +353,18 @@ class Experiment:
 
 
 class Plate:
-    def __init__(self, plate_type, owner, plate_id=None, filename=None,
-                 replicates=None, t1=None, t2=None, dt=None, cols=12, rows=8,
-                 cutoff_low=None, cutoff_high=None, signal_threshold=None,
+    def __init__(self, plate_type, owner,
+                 plate_id=None,
+                 filename=None,
+                 replicates=None,
+                 t1=None,
+                 t2=None,
+                 dt=None,
+                 cols=12,
+                 rows=8,
+                 cutoff_low=None,
+                 cutoff_high=None,
+                 signal_threshold=None,
                  color_range=None):
         self.cols = cols
         self.rows = rows
@@ -449,13 +478,11 @@ class Plate:
 
     def write_avg_tm_table(self, filename):
         with open(filename, 'w') as f:
-            f.write('#{:<4s}{:>13s}{:>13s}\n'.format('"ID"',
-                                                     '"Tm [°C]"',
+            f.write('#{:<4s}{:>13s}{:>13s}\n'.format('"ID"', '"Tm [°C]"',
                                                      '"SD"'))
             for well in self.wells:
                 if np.isnan(well.tm) or well in self.denatured_wells:
-                    f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name,
-                                                            'NaN',
+                    f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name, 'NaN',
                                                             'NaN'))
                 else:
                     f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name,
@@ -527,7 +554,6 @@ def update_progress_bar(bar, value):
 
 
 class PlotResults():
-
     def plot_raw(self, plate, widget):
         n = 0
         for i in range(plate.wellnum):
@@ -543,7 +569,6 @@ class PlotResults():
                 n = 0
             n += 1
             p1 = widget.addPlot(title=well.name, x=x, y=well.raw)
-
 
 #     def plot_tm_heatmap_single(self, plate, widget):
 #         """

@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'mainwindow.ui'
 #
-# Created: Sat Jan 31 19:20:48 2015
-#      by: PyQt5 UI code generator 5.4
+# Created by: PyQt5 UI code generator 5.4.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -21,8 +20,9 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(self.centralWidget)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.splitter.setOpaqueResize(False)
         self.splitter.setHandleWidth(2)
-        self.splitter.setChildrenCollapsible(True)
+        self.splitter.setChildrenCollapsible(False)
         self.splitter.setObjectName("splitter")
         self.groupBox_experiment = QtWidgets.QGroupBox(self.splitter)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -195,26 +195,14 @@ class Ui_MainWindow(object):
         self.buttonBox_process.setObjectName("buttonBox_process")
         self.formLayout_3.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.buttonBox_process)
         self.tabWidget = QtWidgets.QTabWidget(self.splitter)
+        self.tabWidget.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setHorizontalStretch(6)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
         self.tabWidget.setSizePolicy(sizePolicy)
         self.tabWidget.setMinimumSize(QtCore.QSize(300, 300))
         self.tabWidget.setObjectName("tabWidget")
-        #self.tab_raw = MplWidget()
-        #self.tab_raw.setObjectName("tab_raw")
-        #self.tabWidget.addTab(self.tab_raw, "")
-        #self.tab_derivative = MplWidget()
-        #self.tab_derivative.setObjectName("tab_derivative")
-        #self.tabWidget.addTab(self.tab_derivative, "")
-        #self.tab_heatmap = MplWidget()
-        #self.tab_heatmap.setObjectName("tab_heatmap")
-        #self.tabWidget.addTab(self.tab_heatmap, "")
-        #self.tab_heatmap_avg = MplWidget()
-        #self.tab_heatmap_avg.setEnabled(False)
-        #self.tab_heatmap_avg.setObjectName("tab_heatmap_avg")
-        #self.tabWidget.addTab(self.tab_heatmap_avg, "")
         self.horizontalLayout.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralWidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)
@@ -255,7 +243,7 @@ class Ui_MainWindow(object):
         self.label_cbar_end.setBuddy(self.doubleSpinBox_cbar_end)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -291,14 +279,9 @@ class Ui_MainWindow(object):
         self.doubleSpinBox_cbar_start.setSuffix(_translate("MainWindow", " °C"))
         self.label_cbar_end.setText(_translate("MainWindow", "En&d"))
         self.doubleSpinBox_cbar_end.setSuffix(_translate("MainWindow", " °C"))
-        #self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_raw), _translate("MainWindow", "Raw Data"))
-        #self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_derivative), _translate("MainWindow", "&2nd derivative"))
-        #self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_heatmap), _translate("MainWindow", "Heatmap"))
-        #self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_heatmap_avg), _translate("MainWindow", "Heatmap average"))
         self.menuFile.setTitle(_translate("MainWindow", "Fi&le"))
         self.menuHelp.setTitle(_translate("MainWindow", "Hel&p"))
         self.actionQuit.setText(_translate("MainWindow", "&Quit"))
         self.actionAbout.setText(_translate("MainWindow", "&About"))
         self.actionAbout_Qt.setText(_translate("MainWindow", "About &Qt"))
 
-from .mplwidget import MplWidget

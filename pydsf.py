@@ -57,7 +57,7 @@ class Well:
         Apply a filter to the raw data
         """
         try:
-            b, a = butter(3, 0.3)
+            b, a = butter(3, 0.3, output='ba')
             self.filtered = filtfilt(b, a, self.raw)
         except Exception as err:
             print('Filtering of raw data failed!', err)
@@ -95,7 +95,7 @@ class Well:
         try:
             baseline = peakutils.baseline(y)
             return baseline
-        except:
+        except Exception:
             return np.NaN
 
     def calc_tm(self):
@@ -152,7 +152,7 @@ class Well:
             else:
                 return np.NaN
 
-        except:
+        except Exception:
             return np.NaN  # In case of error, return no peak
 
         try:
@@ -165,7 +165,7 @@ class Well:
                 return tm  # and return the Tm
             else:
                 return np.NaN  # otherwise, return NaN
-        except:
+        except Exception:
             return np.NaN  # In case of error, return NaN
 
     def is_denatured(self):
@@ -240,7 +240,7 @@ class Well:
 
 
 class Experiment:
-    def __init__(self, type, gui=None, files=None, replicates=None, t1=25,
+    def __init__(self, exp_type, gui=None, files=None, replicates=None, t1=25,
                  t2=95, dt=1, cols=12, rows=8, cutoff_low=None,
                  cutoff_high=None, signal_threshold=None, color_range=None,
                  baseline_correction=False):
@@ -254,7 +254,7 @@ class Experiment:
         self.reads = int(round((t2 + 1 - t1) / dt))
         self.wellnum = self.cols * self.rows
         self.files = files
-        self.type = type
+        self.type = exp_type
         self.wells = []
         self.max_tm = None
         self.min_tm = None
@@ -284,7 +284,7 @@ class Experiment:
         # populate self.plates with data in provided files list
         i = 1
         for file in files:
-            plate = Plate(type=self.type, owner=self, filename=file,
+            plate = Plate(plate_type=self.type, owner=self, filename=file,
                           t1=self.t1, t2=self.t2, dt=self.dt, cols=self.cols,
                           rows=self.rows, cutoff_low=self.tm_cutoff_low,
                           cutoff_high=self.tm_cutoff_high,
@@ -296,9 +296,9 @@ class Experiment:
         # if more than one file is provied, assume that those are replicates
         # and add a special plate representing the average results
         if len(files) > 1:
-            self.avg_plate = Plate(type=self.type, owner=self, filename=None,
-                                   t1=self.t1, t2=self.t2, dt=self.dt,
-                                   cols=self.cols, rows=self.rows,
+            self.avg_plate = Plate(plate_type=self.type, owner=self,
+                                   filename=None, t1=self.t1, t2=self.t2,
+                                   dt=self.dt, cols=self.cols, rows=self.rows,
                                    cutoff_low=self.tm_cutoff_low,
                                    cutoff_high=self.tm_cutoff_high,
                                    signal_threshold=self.signal_threshold,
@@ -337,9 +337,10 @@ class Experiment:
 
 
 class Plate:
-    def __init__(self, type, owner, id=None, filename=None, replicates=None,
-                 t1=None, t2=None, dt=None, cols=12, rows=8, cutoff_low=None,
-                 cutoff_high=None, signal_threshold=None, color_range=None):
+    def __init__(self, plate_type, owner, plate_id=None, filename=None,
+                 replicates=None, t1=None, t2=None, dt=None, cols=12, rows=8,
+                 cutoff_low=None, cutoff_high=None, signal_threshold=None,
+                 color_range=None):
         self.cols = cols
         self.rows = rows
         self.owner = owner
@@ -359,13 +360,13 @@ class Plate:
         self.reads = int(round((t2 + 1 - t1) / dt))
         self.wellnum = self.cols * self.rows
         self.filename = filename
-        self.type = type
+        self.type = plate_type
         self.wells = []
         self.max_tm = None
         self.min_tm = None
-        self.replicates = None
+        self.replicates = replicates
         self.signal_threshold = signal_threshold
-        self.id = id
+        self.id = plate_id
         self.baseline_correction = owner.baseline_correction
         if cutoff_low:
             self.tm_cutoff_low = cutoff_low
@@ -401,7 +402,7 @@ class Plate:
                     if read > 0:
                         try:
                             temp[read - 1] = row[read]
-                        except:
+                        except Exception:
                             temp[read - 1] = 0.0
                     elif read == 0:
                         self.wells[i].name = row[read]
@@ -413,7 +414,6 @@ class Plate:
             # Try to access data file in the given path
             with open(self.filename) as f:
                 f.close()
-                pass
         except IOError as e:
             # If the file is not found, or not accessible: abort
             print('Error accessing file: {}'.format(e))

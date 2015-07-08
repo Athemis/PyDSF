@@ -9,6 +9,7 @@ _translate = QCoreApplication.translate
 
 
 class MplCanvas(FigureCanvas):
+
     def __init__(self, parent=None, width=4, height=5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.ax = self.fig.add_subplot(111)
@@ -34,20 +35,23 @@ class MplCanvas(FigureCanvas):
         except IOError:
             QtWidgets.QMessageBox.critical(
                 self, _translate("MainWindow", "Error"),
-                _translate("MainWindow", "Error saving figure! Please check permissions/free space of target path!"),
+                _translate("MainWindow", "Error saving figure! Please check "
+                           "permissions/free space of target path!"),
                 QtWidgets.QMessageBox.Close, QtWidgets.QMessageBox.Close)
 
 
 class CustomNavigationToolbar(NavigationToolbar):
+
     toolitems = (
-        (_translate("CustomNavigationToolbar", 'Save'),
+        (_translate("CustomNavigationToolbar", "Save"),
          _translate("CustomNavigationToolbar",
-                    'Save the figure'), 'filesave',
-         'save_figure'),
-        (_translate("CustomNavigationToolbar", 'Subplots'),
+                    "Save the figure"), "filesave",
+         "save_figure"),
+        (_translate("CustomNavigationToolbar", "Subplots"),
          _translate("CustomNavigationToolbar",
-                    'Configure subplots'), 'subplots',
-         'configure_subplots'), (None, None, None, None), )
+                    "Configure subplots"), "subplots",
+         "configure_subplots"),
+        (None, None, None, None), )
 
     def __init__(self, canvas, parent, coordinates=True):
         NavigationToolbar.__init__(self, canvas, parent,
@@ -55,6 +59,7 @@ class CustomNavigationToolbar(NavigationToolbar):
 
 
 class MplWidget(QtWidgets.QGraphicsView):
+
     def __init__(self, parent=None):
         QtWidgets.QGraphicsView.__init__(self, parent)
         self.canvas = MplCanvas()

@@ -72,6 +72,7 @@ class TaskSignals(QObject):
 
 
 class Tasks(QObject):
+
     def __init__(self):
         super(Tasks, self).__init__()
 
@@ -100,6 +101,7 @@ class Tasks(QObject):
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
+
     """
     Class documentation goes here.
     """
@@ -150,7 +152,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @pyqtSlot("QAbstractButton*")
     def on_buttonBox_output_clicked(self, button):
         if button == self.buttonBox_output.button(QDialogButtonBox.Open):
-            path = QFileDialog.getExistingDirectory(parent=self, caption=_translate('MainWindow', 'Choose output path'), options=QFileDialog.ShowDirsOnly)
+            path = QFileDialog.getExistingDirectory(parent=self, caption=_translate(
+                'MainWindow', 'Choose output path'), options=QFileDialog.ShowDirsOnly)
             self.lineEdit_output.setText(path.strip())
 
     @pyqtSlot("QString")
@@ -186,29 +189,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
             if self.checkBox_saveplots.isChecked():
-                tab.canvas.save("{}/heatmap_{}.svg".format(self.outputPath, plate.id))
+                tab.canvas.save(
+                    "{}/heatmap_{}.svg".format(self.outputPath, plate.id))
 
             tab = self.generate_plot_tab("tab_raw_{}".format(plate.id))
             title = _translate("MainWindow", "Raw Data #")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_raw(plate, tab)
             if self.checkBox_saveplots.isChecked():
-                tab.canvas.save("{}/raw_{}.svg".format(self.outputPath, plate.id))
+                tab.canvas.save(
+                    "{}/raw_{}.svg".format(self.outputPath, plate.id))
 
             tab = self.generate_plot_tab("tab_derivative_{}".format(plate.id))
             title = _translate("MainWindow", "Derivatives #")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_derivative(plate, tab)
             if self.checkBox_saveplots.isChecked():
-                tab.canvas.save("{}/derivatives_{}.svg".format(self.outputPath, plate.id))
+                tab.canvas.save(
+                    "{}/derivatives_{}.svg".format(self.outputPath, plate.id))
         else:
             tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id))
             title = _translate("MainWindow", "Heatmap ")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
             if self.checkBox_saveplots.isChecked():
-                tab.canvas.save("{}/heatmap_{}.svg".format(self.outputPath, plate.id))
-
+                tab.canvas.save(
+                    "{}/heatmap_{}.svg".format(self.outputPath, plate.id))
 
     @pyqtSlot()
     def on_buttonBox_process_accepted(self):
@@ -279,7 +285,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         '{}/plate_{}_dI_dT.csv'.format(self.outputPath, str(plate.id)), dataType='derivative')
                     plate.write_data_table(
                         '{}/plate_{}_filtered_data.csv'.format(self.outputPath,
-                                                                  str(plate.id)), dataType='filtered')
+                                                               str(plate.id)), dataType='filtered')
                     plate.write_data_table('{}/plate_{}_raw_data.csv'.format(
                         self.outputPath, str(plate.id)))
 

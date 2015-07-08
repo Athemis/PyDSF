@@ -34,13 +34,20 @@ except ImportError:
 
 try:
     from PyQt5.QtCore import QCoreApplication
-except:
+except ImportError:
     raise ImportError('----- PyQt5 must be installed -----')
+
+# Import available instruments
+try:
+    from instruments.analytikJenaqTower2 import AnalytikJenaqTower2
+except ImportError as err:
+    raise ImportError('Error while loading instrument plugins:', err)
 
 _translate = QCoreApplication.translate
 
 
 class Well:
+
     """
     Represents a well in a microtiter plate.
     Owned by an object of type 'Plate'.
@@ -137,23 +144,10 @@ class Well:
         # Run peak finding; return NaN in case of error
         try:
             peak_indexes = peakutils.indexes(y, thres=0.3)
+            peaks_x = peakutils.interpolate(x, y, width=3, ind=peak_indexes)
 
-            # loop over results to find maximum value for peak candidates
-            max_y = None  # current maximum
-            max_i = None  # index of current maximum
-            for peak in peak_indexes:
-                # if current peak is larger than old maximum and its
-                # second derivative is positive, replace maximum with
-                # current peak
-                if (not max_y or y[peak] > max_y) and y[peak] > 0:
-                    max_y = y[peak]
-                    max_i = peak
-
-            # If a global maximum is identified, return use its x value as
-            # melting temperature
-            if max_y and max_i:
-                tm = x[max_i]
-            # if no maximum is found, return NaN
+            if len(peaks_x) > 0:
+                tm = max(peaks_x)
             else:
                 return np.NaN
 
@@ -163,9 +157,6 @@ class Well:
         try:
             if (tm and tm >= self.owner.tm_cutoff_low and
                     tm <= self.owner.tm_cutoff_high):
-                tm = round(peakutils.interpolate(x, y,
-                                                 width=3,
-                                                 ind=[max_i])[0], 2)
                 self.owner.denatured_wells.remove(self)
                 # If everything is fine, remove the denatured flag
                 return tm  # and return the Tm
@@ -246,8 +237,8 @@ class Well:
 
 
 class Experiment:
+
     def __init__(self, exp_type,
-                 gui=None,
                  files=None,
                  replicates=None,
                  t1=25,
@@ -275,7 +266,6 @@ class Experiment:
         self.max_tm = None
         self.min_tm = None
         self.replicates = None
-        self.gui = gui
         self.signal_threshold = signal_threshold
         self.avg_plate = None
         self.baseline_correction = baseline_correction
@@ -337,7 +327,7 @@ class Experiment:
         Triggers analyzation of plates.
         """
         for plate in self.plates:
-            plate.analyze(gui=self.gui)
+            plate.analyze()
         # if more than one plate is present, calculate average values for the
         # merged average plate
         if len(self.plates) > 1:
@@ -364,6 +354,7 @@ class Experiment:
 
 
 class Plate:
+
     def __init__(self, plate_type, owner,
                  plate_id=None,
                  filename=None,
@@ -445,7 +436,7 @@ class Plate:
                 self.wells[i].raw = temp
                 i += 1
 
-    def analyze(self, gui=None):
+    def analyze(self):
         try:
             # Try to access data file in the given path
             with open(self.filename) as f:
@@ -455,17 +446,16 @@ class Plate:
             print('Error accessing file: {}'.format(e))
 
         if self.type == 'Analytik Jena qTOWER 2.0/2.2':
-            self.analytikJena()
-            if gui:
-                update_progress_bar(gui.pb, 1)
+            instrument = AnalytikJenaqTower2()
+
         else:
             # Raise exception, if the instrument's name is unknown
             raise NameError('Unknown instrument type: {}'.format(self.type))
 
+        self.wells = instrument.loadData(self.filename, self.reads, self.wells)
+
         for well in self.wells:
             well.analyze()
-            if gui:
-                update_progress_bar(gui.pb, 15)
 
             self.tms.append(well.tm)
 
@@ -511,7 +501,9 @@ class Plate:
                     elif dataType == 'derivative':
                         d = well.derivatives[1][i]
                     else:
-                        raise ValueError('Valid dataTypes are "raw", "filtered", and "derivative"! dataType provided was:{}'.format(dataType))
+                        raise ValueError("Valid dataTypes are raw,"
+                                         "filtered, and derivative! dataType"
+                                         "provided was:{}".format(dataType))
                     d_rounded = float(np.round(d, decimals=3))
                     row.append(d_rounded)
                 writer.writerow(row)
@@ -524,11 +516,8 @@ class Plate:
         raise NotImplementedError
 
 
-def update_progress_bar(bar, value):
-    bar.setValue(value)
-
-
 class PlotResults():
+
     def plot_tm_heatmap_single(self, plate, widget):
         """
         Plot Tm heatmap (Fig. 1)

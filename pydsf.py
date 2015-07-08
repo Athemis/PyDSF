@@ -431,7 +431,7 @@ class Plate:
                     if read > 0:
                         try:
                             temp[read - 1] = row[read]
-                        except Exception:
+                        except IndexError:
                             temp[read - 1] = 0.0
                     elif read == 0:
                         self.wells[i].name = row[read]

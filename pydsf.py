@@ -32,6 +32,13 @@ try:
 except ImportError:
     raise ImportError('----- SciPy must be installed. -----')
 
+try:
+    from PyQt5.QtCore import QCoreApplication
+except:
+    raise ImportError('----- PyQt5 must be installed -----')
+
+_translate = QCoreApplication.translate
+
 
 class Well:
     """
@@ -625,15 +632,16 @@ class PlotResults():
                     linewidths=(1.5, ))
         ax1.invert_yaxis()  # invert y axis to math plate layout
         cbar = fig1.colorbar(cax)  # show colorbar
-        ax1.set_xlabel('Columns')  # set axis and colorbar label
-        ax1.set_ylabel('Rows')
+        ax1.set_xlabel(_translate('pydsf',
+                                  'Columns'))  # set axis and colorbar label
+        ax1.set_ylabel(_translate('pydsf', 'Rows'))
 
         if str(plate.id) == 'average':
-            title = '$T_m$ heatmap (average)'
+            title = _translate('pydsf', '$T_m$ heatmap (')
         else:
-            title = '$T_m$ heatmap (plate #{})'.format(str(plate.id))
-        ax1.set_title(title)
-        cbar.set_label(u"Temperature [°C]")
+            title = _translate('pydsf', '$T_m$ heatmap (plate #')
+        ax1.set_title(title + str(plate.id) + ')')
+        cbar.set_label(_translate('pydsf', u"Temperature [°C]"))
 
         canvas.draw()
 
@@ -645,8 +653,8 @@ class PlotResults():
         canvas.clear()
         fig = canvas.fig  # new figure
         # set title
-        fig.suptitle(
-            'Individual Derivatives (plate #{})'.format(str(plate.id)))
+        title = _translate('pydsf', "Individual Derivatives (plate #")
+        fig.suptitle(title + str(plate.id) + ')')
 
         grid = mpl_toolkits.axes_grid1.Grid(
             fig, 111,
@@ -705,7 +713,8 @@ class PlotResults():
         canvas.clear()
 
         fig = canvas.fig
-        fig.suptitle('Raw Data (plate #{})'.format(str(plate.id)))
+        title = _translate('pydsf', "Raw Data (plate #")
+        fig.suptitle(title + str(plate.id) + ')')
 
         grid = mpl_toolkits.axes_grid1.Grid(
             fig, 111,

@@ -5,8 +5,7 @@ Module implementing MainWindow.
 from PyQt5.QtCore import (pyqtSlot, QObject, pyqtSignal, QThreadPool,
                           QRunnable, QCoreApplication)
 from PyQt5.QtWidgets import (QMainWindow, QProgressBar, QDialogButtonBox,
-                             QFileDialog, QMessageBox, QApplication,
-                             QTableWidget, QTableWidgetItem)
+                             QFileDialog, QMessageBox, QApplication)
 
 from .Ui_mainwindow import Ui_MainWindow
 from .mplwidget import MplWidget

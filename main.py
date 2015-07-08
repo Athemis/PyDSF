@@ -11,11 +11,14 @@ if __name__ == "__main__":
     import sys
 
     app = QtWidgets.QApplication(sys.argv)
-    translationFiles = glob.glob("i18n/*.qm")
     translator = QtCore.QTranslator()
-    for translationFile in translationFiles:
-        translator.load(translationFile)
-        app.installTranslator(translator)
+    # get system locale
+    systemLocale = QtCore.QLocale.system().name()
+    translationFile = "i18n/{}".format(systemLocale)
+    # load translation file and install translator
+    translator.load(translationFile)
+    app.installTranslator(translator)
+    # fire up main ui
     ui = MainWindow()
     ui.show()
     sys.exit(app.exec_())

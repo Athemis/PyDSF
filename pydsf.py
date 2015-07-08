@@ -478,80 +478,44 @@ class Plate:
         self.max_tm = max(self.tms)
         self.min_tm = min(self.tms)
 
-    def write_tm_table(self, filename):
+    def write_tm_table(self, filename, avg=False):
         with open(filename, 'w') as f:
-            f.write('#{:<4s}{:>13s}\n'.format('ID', '"Tm [°C]"'))
+            writer = csv.writer(f, dialect='excel')
+            header = ['ID', 'Tm [°C]']
+            if avg:
+                header.append('SD [°C]')
+            writer.writerow(header)
             for well in self.wells:
-                if np.isnan(well.tm) or well in self.denatured_wells:
-                    f.write('{:<5s}{:>12s}\n'.format(well.name, 'NaN'))
-                else:
-                    f.write('{:<5s}{:>12s}\n'.format(well.name, str(well.tm)))
+                row = [well.name, well.tm]
+                if avg:
+                    row.append(well.tm_sd)
+                writer.writerow(row)
 
-    def write_avg_tm_table(self, filename):
+    def write_data_table(self, filename, dataType='raw'):
         with open(filename, 'w') as f:
-            f.write('#{:<4s}{:>13s}{:>13s}\n'.format('"ID"', '"Tm [°C]"',
-                                                     '"SD"'))
+            writer = csv.writer(f, dialect='excel')
+            header = ['Tm [°C]']
             for well in self.wells:
-                if np.isnan(well.tm) or well in self.denatured_wells:
-                    f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name, 'NaN',
-                                                            'NaN'))
-                else:
-                    f.write('{:<5s}{:>12s}{:>12s}\n'.format(well.name,
-                                                            str(well.tm),
-                                                            str(well.tm_sd)))
-
-    def write_raw_table(self, filename):
-        with open(filename, 'w') as f:
-            f.write('#"Raw data"\n')
-            f.write('#{:<10s}'.format('"T [°C]"'))
-            for well in self.wells:
-                f.write('{:>15s}'.format(well.name))
-            f.write('\n')
+                header.append(well.name)
+            writer.writerow(header)
 
             i = 0
+            row = []
             for t in self.temprange:
-                f.write('{:<10s}'.format(str(t)))
+                row.append(str(t))
                 for well in self.wells:
-                    d = well.raw[i]
+                    if dataType == 'raw':
+                        d = well.raw[i]
+                    elif dataType == 'filtered':
+                        d = well.filtered[i]
+                    elif dataType == 'derivative':
+                        d = well.derivatives[1][i]
+                    else:
+                        raise ValueError('Valid dataTypes are "raw", "filtered", and "derivative"! dataType provided was:{}'.format(dataType))
                     d_rounded = float(np.round(d, decimals=3))
-                    f.write('{:>-15.3f}'.format(d_rounded))
-                f.write('\n')
-                i += 1
-
-    def write_filtered_table(self, filename):
-        with open(filename, 'w') as f:
-            f.write('#"Filtered data" \n')
-            f.write('#{:<10s}'.format('"T [°C]"'))
-            for well in self.wells:
-                f.write('{:>15s}'.format(well.name))
-            f.write('\n')
-
-            i = 0
-            for t in self.temprange:
-                f.write('{:<10s}'.format(str(t)))
-                for well in self.wells:
-                    d = well.filtered[i]
-                    d_rounded = float(np.round(d, decimals=3))
-                    f.write('{:>-15.3f}'.format(d_rounded))
-                f.write('\n')
-                i += 1
-
-    def write_derivative_table(self, filename):
-        with open(filename, 'w') as f:
-            f.write('#"Derivative dI/dT"\n')
-            f.write('#{:<10s}'.format('"T [°C]"'))
-            for well in self.wells:
-                f.write('{:>15s}'.format(well.name))
-            f.write('\n')
-
-            i = 0
-            for t in self.temprange:
-                f.write('{:<10s}'.format(str(t)))
-                for well in self.wells:
-                    d = well.derivatives[1][i]
-                    d_rounded = float(np.round(d, decimals=3))
-                    f.write('{:>-15.3f}'.format(d_rounded))
-                f.write('\n')
+                    row.append(d_rounded)
+                writer.writerow(row)
+                row = []
                 i += 1
 
     # TODO: Implement 'write_baseline_corrected_table()

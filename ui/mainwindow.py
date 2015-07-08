@@ -5,11 +5,13 @@ Module implementing MainWindow.
 from PyQt5.QtCore import (pyqtSlot, QObject, pyqtSignal, QThreadPool,
                           QRunnable, QCoreApplication)
 from PyQt5.QtWidgets import (QMainWindow, QProgressBar, QDialogButtonBox,
-                             QFileDialog, QMessageBox, QApplication)
+                             QFileDialog, QMessageBox, QApplication,
+                             QTableWidget, QTableWidgetItem)
 
 from .Ui_mainwindow import Ui_MainWindow
 from .mplwidget import MplWidget
 from pydsf import Experiment, PlotResults
+import os
 
 VERSION = "1.0"
 _translate = QCoreApplication.translate
@@ -125,6 +127,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tasks = Tasks()
         self.worker = Worker(self)
 
+        self.outputPath = None
+
     @pyqtSlot("QAbstractButton*")
     def on_buttonBox_open_reset_clicked(self, button):
         """
@@ -142,7 +146,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif button == self.buttonBox_open_reset.button(
                 QDialogButtonBox.Reset):
             self.listWidget_data.clear()
-            self.remove_plate_tabs()
+
+    @pyqtSlot("QAbstractButton*")
+    def on_buttonBox_output_clicked(self, button):
+        if button == self.buttonBox_output.button(QDialogButtonBox.Open):
+            path = QFileDialog.getExistingDirectory(parent=self, caption=_translate('MainWindow', 'Choose output path'), options=QFileDialog.ShowDirsOnly)
+            self.lineEdit_output.setText(path.strip())
 
     @pyqtSlot("QString")
     def on_comboBox_instrument_currentIndexChanged(self, p0):
@@ -155,7 +164,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.groupBox_temp.setEnabled(False)
 
     def generate_plot_tab(self, name):
-        tab = MplWidget(parent=self)
+        tab = MplWidget(parent=self.tabWidget)
         tab.setObjectName(name)
         return tab
 
@@ -171,26 +180,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def generate_plate_tabs(self, plate):
         plotter = PlotResults()
 
-        if id != 'average':
-            tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
+        if plate.id != 'average':
+            tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id))
             title = _translate("MainWindow", "Heatmap #")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
+            if self.checkBox_saveplots.isChecked():
+                tab.canvas.save("{}/heatmap_{}.svg".format(self.outputPath, plate.id))
 
-            tab = self.generate_plot_tab("tab_raw_{}".format(id))
+            tab = self.generate_plot_tab("tab_raw_{}".format(plate.id))
             title = _translate("MainWindow", "Raw Data #")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_raw(plate, tab)
+            if self.checkBox_saveplots.isChecked():
+                tab.canvas.save("{}/raw_{}.svg".format(self.outputPath, plate.id))
 
-            tab = self.generate_plot_tab("tab_derivative_{}".format(id))
+            tab = self.generate_plot_tab("tab_derivative_{}".format(plate.id))
             title = _translate("MainWindow", "Derivatives #")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_derivative(plate, tab)
+            if self.checkBox_saveplots.isChecked():
+                tab.canvas.save("{}/derivatives_{}.svg".format(self.outputPath, plate.id))
         else:
-            tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
+            tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id))
             title = _translate("MainWindow", "Heatmap ")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
+            if self.checkBox_saveplots.isChecked():
+                tab.canvas.save("{}/heatmap_{}.svg".format(self.outputPath, plate.id))
+
 
     @pyqtSlot()
     def on_buttonBox_process_accepted(self):
@@ -204,6 +222,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 _translate("MainWindow", "No data file loaded!"),
                 QMessageBox.Close, QMessageBox.Close)
             return
+        if self.groupBox_output.isChecked() and self.lineEdit_output.text().strip() == '':
+            QMessageBox.critical(
+                self, _translate("MainWindow", "Error"),
+                _translate("MainWindow", "No output path set!"),
+                QMessageBox.Close, QMessageBox.Close)
+            return
+        elif self.groupBox_output.isChecked() and self.lineEdit_output.text().strip() != '':
+            path = self.lineEdit_output.text().strip()
+            if os.path.isdir(path):
+                self.outputPath = self.lineEdit_output.text().strip()
+            else:
+                QMessageBox.critical(
+                    self, _translate("MainWindow", "Error"),
+                    _translate("MainWindow", "Output path does not exist!"),
+                    QMessageBox.Close, QMessageBox.Close)
+
         if self.spinBox_signal_threshold.value(
         ) == 0 and self.groupBox_signal_threshold.isChecked():
             QMessageBox.warning(
@@ -213,6 +247,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     "Signal threshold is currently set to zero."),
                 QMessageBox.Ok, QMessageBox.Ok)
 
+        self.remove_plate_tabs()
         self.progressBar.setEnabled(True)
         self.statusBar.showMessage(_translate("MainWindow", "Processing..."))
 
@@ -225,32 +260,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # For now, only read the first entry
         exp = self.tasks.data[0]
 
-        save_data = QMessageBox.question(
-            self, _translate("MainWindow", "Save data"),
-            _translate(
-                "MainWindow", "Calculations are finished. Save results?"),
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-        if save_data == QMessageBox.Yes:
-            dialog = QFileDialog()
-            dialog.setFileMode(QFileDialog.Directory)
-            folder = dialog.getExistingDirectory(
-                self, _translate("MainWindow", "Choose path for results"))
-            for plate in exp.plates:
-                plate.write_tm_table(
-                    '{}/plate_{}_04_tm.csv'.format(folder, str(plate.id)))
-                plate.write_derivative_table(
-                    '{}/plate_{}_03_dI_dT.csv'.format(folder, str(plate.id)))
-                plate.write_filtered_table(
-                    '{}/plate_{}_02_filtered_data.csv'.format(folder,
-                                                              str(plate.id)))
-                plate.write_raw_table('{}/plate_{}_01_raw_data.csv'.format(
-                    folder, str(plate.id)))
-
-            if exp.avg_plate:
-                exp.avg_plate.write_avg_tm_table(
-                    '{}/plate_{}_05_tm_avg.csv'.format(
-                        folder, str(self.worker.exp.avg_plate.id)))
-
         for i in range(len(self.worker.exp.plates)):
 
             plate = exp.plates[i]
@@ -260,6 +269,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             plate = exp.avg_plate
             self.generate_plate_tabs(plate)
+
+        if self.groupBox_output.isChecked():
+            if self.checkBox_savetables.isChecked():
+                for plate in exp.plates:
+                    plate.write_tm_table(
+                        '{}/plate_{}_tm.csv'.format(self.outputPath, str(plate.id)))
+                    plate.write_data_table(
+                        '{}/plate_{}_dI_dT.csv'.format(self.outputPath, str(plate.id)), dataType='derivative')
+                    plate.write_data_table(
+                        '{}/plate_{}_filtered_data.csv'.format(self.outputPath,
+                                                                  str(plate.id)), dataType='filtered')
+                    plate.write_data_table('{}/plate_{}_raw_data.csv'.format(
+                        self.outputPath, str(plate.id)))
+
+                if exp.avg_plate:
+                    exp.avg_plate.write_tm_table(
+                        '{}/plate_{}_tm_avg.csv'.format(
+                            self.outputPath, str(self.worker.exp.avg_plate.id)), avg=True)
 
         self.progressBar.setEnabled(False)
         self.statusBar.showMessage(_translate("MainWindow", "Finished!"))

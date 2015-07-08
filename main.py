@@ -20,5 +20,6 @@ if __name__ == "__main__":
     app.installTranslator(translator)
     # fire up main ui
     ui = MainWindow()
-    ui.show()
+    ui.showMaximized()
+    #ui.show()
     sys.exit(app.exec_())

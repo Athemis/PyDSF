@@ -28,6 +28,15 @@ class MplCanvas(FigureCanvas):
         self.ax.clear()
         self.fig.clear()
 
+    def save(self, filename):
+        try:
+            self.fig.savefig(filename, dpi=300)
+        except IOError:
+            QtWidgets.QMessageBox.critical(
+                self, _translate("MainWindow", "Error"),
+                _translate("MainWindow", "Error saving figure! Please check permissions/free space of target path!"),
+                QtWidgets.QMessageBox.Close, QtWidgets.QMessageBox.Close)
+
 
 class CustomNavigationToolbar(NavigationToolbar):
     toolitems = (

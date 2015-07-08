@@ -142,6 +142,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif button == self.buttonBox_open_reset.button(
                 QDialogButtonBox.Reset):
             self.listWidget_data.clear()
+            self.remove_plate_tabs()
 
     @pyqtSlot("QString")
     def on_comboBox_instrument_currentIndexChanged(self, p0):
@@ -158,28 +159,37 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         tab.setObjectName(name)
         return tab
 
+    def remove_plate_tabs(self):
+        for i in range(self.tabWidget.count()):
+            try:
+                widget = self.tabWidget.widget(i)
+                widget.deleteLater()
+            except IndexError:
+                pass
+        self.tabWidget.clear()
+
     def generate_plate_tabs(self, plate):
         plotter = PlotResults()
 
         if id != 'average':
             tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
-            self.tabWidget.addTab(tab, _translate(
-                "MainWindow", "Heatmap #{}".format(plate.id)))
+            title = _translate("MainWindow", "Heatmap #")
+            self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
 
             tab = self.generate_plot_tab("tab_raw_{}".format(id))
-            self.tabWidget.addTab(tab, _translate(
-                "MainWindow", "Raw Data #{}".format(plate.id)))
+            title = _translate("MainWindow", "Raw Data #")
+            self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_raw(plate, tab)
 
             tab = self.generate_plot_tab("tab_derivative_{}".format(id))
-            self.tabWidget.addTab(tab, _translate(
-                "MainWindow", "Derivatives #{}".format(plate.id)))
+            title = _translate("MainWindow", "Derivatives #")
+            self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_derivative(plate, tab)
         else:
             tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
-            self.tabWidget.addTab(tab, _translate(
-                "MainWindow", "Heatmap ({})".format(plate.id)))
+            title = _translate("MainWindow", "Heatmap ")
+            self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
 
     @pyqtSlot()

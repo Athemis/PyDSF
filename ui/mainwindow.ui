@@ -48,6 +48,12 @@
          <height>300</height>
         </size>
        </property>
+       <property name="sizeIncrement">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="title">
         <string>Experimental Setup</string>
        </property>
@@ -465,7 +471,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QTabWidget" name="tabWidget">
+      <widget class="QGroupBox" name="groupBox_results">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -475,15 +481,45 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="minimumSize">
+       <property name="sizeIncrement">
         <size>
-         <width>300</width>
-         <height>300</height>
+         <width>0</width>
+         <height>0</height>
         </size>
        </property>
-       <property name="currentIndex">
-        <number>-1</number>
+       <property name="title">
+        <string>Plots</string>
        </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0">
+        <item>
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>300</width>
+            <height>300</height>
+           </size>
+          </property>
+          <property name="sizeIncrement">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="currentIndex">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </widget>
     </item>
@@ -495,7 +531,7 @@
      <x>0</x>
      <y>0</y>
      <width>1066</width>
-     <height>29</height>
+     <height>28</height>
     </rect>
    </property>
    <property name="locale">

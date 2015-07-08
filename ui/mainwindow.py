@@ -12,6 +12,7 @@ from .mplwidget import MplWidget
 from pydsf import Experiment, PlotResults
 
 VERSION = "1.0"
+_translate = QCoreApplication.translate
 
 
 class WorkerSignals(QObject):
@@ -114,10 +115,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBar.setMaximum(0)
         self.progressBar.setEnabled(False)
         self.statusBar.addPermanentWidget(self.progressBar)
-        self.statusBar.showMessage("Welcome to PyDSF")
+        self.statusBar.showMessage(_translate("MainWindow",
+                                              "Welcome to PyDSF"))
 
         self.buttonBox_process.addButton(
-            QCoreApplication.translate("MainWindow", "&Start Processing"),
+            _translate("MainWindow", "&Start Processing"),
             QDialogButtonBox.AcceptRole)
 
         self.tasks = Tasks()
@@ -131,9 +133,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if button == self.buttonBox_open_reset.button(QDialogButtonBox.Open):
             filenames = QFileDialog.getOpenFileNames(
                 self,
-                QCoreApplication.translate("MainWindow", "Open data file"), '',
-                QCoreApplication.translate("MainWindow",
-                                           "Text files (*.txt *.csv)"))
+                _translate("MainWindow", "Open data file"), '',
+                _translate("MainWindow", "Text files (*.txt *.csv)"))
             self.listWidget_data.addItems(filenames[0])
             if self.listWidget_data.count() > 1:
                 self.groupBox_replicates.setChecked(True)
@@ -162,22 +163,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if id != 'average':
             tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
-            self.tabWidget.addTab(tab, QCoreApplication.translate(
+            self.tabWidget.addTab(tab, _translate(
                 "MainWindow", "Heatmap #{}".format(plate.id)))
             plotter.plot_tm_heatmap_single(plate, tab)
 
             tab = self.generate_plot_tab("tab_raw_{}".format(id))
-            self.tabWidget.addTab(tab, QCoreApplication.translate(
+            self.tabWidget.addTab(tab, _translate(
                 "MainWindow", "Raw Data #{}".format(plate.id)))
             plotter.plot_raw(plate, tab)
 
             tab = self.generate_plot_tab("tab_derivative_{}".format(id))
-            self.tabWidget.addTab(tab, QCoreApplication.translate(
+            self.tabWidget.addTab(tab, _translate(
                 "MainWindow", "Derivatives #{}".format(plate.id)))
             plotter.plot_derivative(plate, tab)
         else:
             tab = self.generate_plot_tab("tab_heatmap_{}".format(id))
-            self.tabWidget.addTab(tab, QCoreApplication.translate(
+            self.tabWidget.addTab(tab, _translate(
                 "MainWindow", "Heatmap ({})".format(plate.id)))
             plotter.plot_tm_heatmap_single(plate, tab)
 
@@ -189,23 +190,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.listWidget_data.count() < 1:
             QMessageBox.critical(
-                self, QCoreApplication.translate("MainWindow", "Error"),
-                QCoreApplication.translate("MainWindow",
-                                           "No data file loaded!"),
+                self, _translate("MainWindow", "Error"),
+                _translate("MainWindow", "No data file loaded!"),
                 QMessageBox.Close, QMessageBox.Close)
             return
         if self.spinBox_signal_threshold.value(
         ) == 0 and self.groupBox_signal_threshold.isChecked():
             QMessageBox.warning(
-                self, QCoreApplication.translate("MainWindow", "Warning"),
-                QCoreApplication.translate(
+                self, _translate("MainWindow", "Warning"),
+                _translate(
                     "MainWindow",
                     "Signal threshold is currently set to zero."),
                 QMessageBox.Ok, QMessageBox.Ok)
 
         self.progressBar.setEnabled(True)
-        self.statusBar.showMessage(QCoreApplication.translate("MainWindow",
-                                                              "Processing..."))
+        self.statusBar.showMessage(_translate("MainWindow", "Processing..."))
 
         self.tasks.signals.finished.connect(self.on_processing_finished)
         self.tasks.add_task(self.worker)
@@ -217,16 +216,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         exp = self.tasks.data[0]
 
         save_data = QMessageBox.question(
-            self, QCoreApplication.translate("MainWindow", "Save data"),
-            QCoreApplication.translate(
+            self, _translate("MainWindow", "Save data"),
+            _translate(
                 "MainWindow", "Calculations are finished. Save results?"),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if save_data == QMessageBox.Yes:
             dialog = QFileDialog()
             dialog.setFileMode(QFileDialog.Directory)
             folder = dialog.getExistingDirectory(
-                self, QCoreApplication.translate("MainWindow",
-                                                 "Choose path for results"))
+                self, _translate("MainWindow", "Choose path for results"))
             for plate in exp.plates:
                 plate.write_tm_table(
                     '{}/plate_{}_04_tm.csv'.format(folder, str(plate.id)))
@@ -254,8 +252,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.generate_plate_tabs(plate)
 
         self.progressBar.setEnabled(False)
-        self.statusBar.showMessage(QCoreApplication.translate("MainWindow",
-                                                              "Finished!"))
+        self.statusBar.showMessage(_translate("MainWindow", "Finished!"))
 
     @pyqtSlot()
     def on_buttonBox_process_rejected(self):

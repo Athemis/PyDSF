@@ -26,27 +26,27 @@
 <context encoding="UTF-8">
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.py" line="119"/>
+        <location filename="mainwindow.py" line="121"/>
         <source>&amp;Start Processing</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="132"/>
+        <location filename="mainwindow.py" line="134"/>
         <source>Open data file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="132"/>
+        <location filename="mainwindow.py" line="134"/>
         <source>Text files (*.txt *.csv)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="191"/>
+        <location filename="mainwindow.py" line="192"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="191"/>
+        <location filename="mainwindow.py" line="192"/>
         <source>No data file loaded!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -66,22 +66,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="219"/>
+        <location filename="mainwindow.py" line="218"/>
         <source>Save data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="219"/>
+        <location filename="mainwindow.py" line="218"/>
         <source>Calculations are finished. Save results?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="227"/>
+        <location filename="mainwindow.py" line="226"/>
         <source>Choose path for results</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.py" line="257"/>
+        <location filename="mainwindow.py" line="255"/>
         <source>Finished!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -233,6 +233,11 @@
     <message>
         <location filename="Ui_mainwindow.py" line="286"/>
         <source>About &amp;Qt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.py" line="118"/>
+        <source>Welcome to PyDSF</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

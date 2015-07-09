@@ -41,7 +41,6 @@ class Worker(QRunnable):
         c_upper = None
         cbar_range = None
         signal_threshold = None
-        #instrument_type = self.owner.comboBox_instrument.currentText()
         if self.owner.groupBox_cutoff.isChecked():
             c_lower = self.owner.doubleSpinBox_lower.value()
             c_upper = self.owner.doubleSpinBox_upper.value()

@@ -12,6 +12,12 @@ from .mplwidget import MplWidget
 from pydsf import Experiment, PlotResults
 import os
 
+# Import available instruments
+try:
+    from instruments.analytikJenaqTower2 import AnalytikJenaqTower2
+except ImportError as err:
+    raise ImportError('Error while loading instrument plugins:', err)
+
 VERSION = "1.0"
 _translate = QCoreApplication.translate
 
@@ -25,7 +31,7 @@ class Worker(QRunnable):
     finished = pyqtSignal(int)
 
     def __init__(self, owner):
-        super(Worker, self).__init__()
+        super().__init__()
         self.exp = None
         self.owner = owner
         self.signals = WorkerSignals()
@@ -35,7 +41,7 @@ class Worker(QRunnable):
         c_upper = None
         cbar_range = None
         signal_threshold = None
-        instrument_type = self.owner.comboBox_instrument.currentText()
+        #instrument_type = self.owner.comboBox_instrument.currentText()
         if self.owner.groupBox_cutoff.isChecked():
             c_lower = self.owner.doubleSpinBox_lower.value()
             c_upper = self.owner.doubleSpinBox_upper.value()
@@ -51,7 +57,7 @@ class Worker(QRunnable):
         files = []
         for item in items:
             files.append(item.text())
-        self.exp = Experiment(exp_type=instrument_type,
+        self.exp = Experiment(instrument=self.owner.instrument,
                               files=files,
                               t1=self.owner.doubleSpinBox_tmin.value(),
                               t2=self.owner.doubleSpinBox_tmax.value(),
@@ -84,6 +90,12 @@ class Tasks(QObject):
     def add_task(self, task):
         self.tasks.append(task)
 
+    def remove_task(self, task):
+        self.tasks.remove(task)
+
+    def clear(self):
+        self.tasks.clear()
+
     def get_data(self):
         self.pool.waitForDone()
         return self.data
@@ -95,6 +107,7 @@ class Tasks(QObject):
 
         for task in self.tasks:
             self.data.append(task.exp)
+            self.remove_task(task)
 
         self.signals.finished.emit(self.data)
 
@@ -120,25 +133,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusBar.addPermanentWidget(self.progressBar)
         self.statusBar.showMessage(_translate("MainWindow",
                                               "Welcome to PyDSF"))
-
         self.buttonBox_process.addButton(
             _translate("MainWindow", "&Start Processing"),
             QDialogButtonBox.AcceptRole)
-
         self.tasks = Tasks()
-        self.worker = Worker(self)
-
+        self.tasks.signals.finished.connect(self.on_processing_finished)
+        self.worker = None
         self.outputPath = None
+        self.instrument = None
+        self.populateInstrumentList()
+
+    def populateInstrumentList(self):
+        self.instruments = [AnalytikJenaqTower2()]
+        for i in range(len(self.instruments)):
+            instrument = self.instruments[i]
+            self.comboBox_instrument.setItemText(i, instrument.name)
+
+    def getInstrumentFromName(self, name):
+        for instrument in self.instruments:
+            if instrument.name == name:
+                return instrument
+        raise IndexError("Requested instrument not")
+
+    def getSelectedInstrument(self):
+        name = str(self.comboBox_instrument.currentText())
+        instrument = self.getInstrumentFromName(name)
+        return instrument
 
     @pyqtSlot("QAbstractButton*")
     def on_buttonBox_open_reset_clicked(self, button):
         """
-        Slot documentation goes here.
+        Triggered when either the open or reset button in the data file
+        dialog is clicked. Spawns an open file dialog or resets the listview.
         """
         if button == self.buttonBox_open_reset.button(QDialogButtonBox.Open):
             filenames = QFileDialog.getOpenFileNames(
-                self,
-                _translate("MainWindow", "Open data file"), '',
+                self, _translate("MainWindow", "Open data file"), '',
                 _translate("MainWindow", "Text files (*.txt *.csv)"))
             self.listWidget_data.addItems(filenames[0])
             if self.listWidget_data.count() > 1:
@@ -151,19 +181,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @pyqtSlot("QAbstractButton*")
     def on_buttonBox_output_clicked(self, button):
         if button == self.buttonBox_output.button(QDialogButtonBox.Open):
-            path = QFileDialog.getExistingDirectory(parent=self, caption=_translate(
-                'MainWindow', 'Choose output path'), options=QFileDialog.ShowDirsOnly)
+            caption = _translate('MainWindow', 'Choose output path')
+            path = QFileDialog.getExistingDirectory(
+                parent=self,
+                caption=caption,
+                options=QFileDialog.ShowDirsOnly)
             self.lineEdit_output.setText(path.strip())
 
     @pyqtSlot("QString")
     def on_comboBox_instrument_currentIndexChanged(self, p0):
         """
-        Slot documentation goes here.
+        Triggered when another instrument is selected from the combobox.
         """
-        if p0 == 'Analytik Jena qTOWER 2.0/2.2':
-            self.groupBox_temp.setEnabled(True)
-        else:
+        self.instrument = self.getInstrumentFromName(p0)
+        if self.instrument.providesTempRange:
             self.groupBox_temp.setEnabled(False)
+        else:
+            self.groupBox_temp.setEnabled(True)
 
     def generate_plot_tab(self, name):
         tab = MplWidget(parent=self.tabWidget)
@@ -221,19 +255,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Slot documentation goes here.
         """
 
+        self.instrument = self.getSelectedInstrument()
+
         if self.listWidget_data.count() < 1:
             QMessageBox.critical(
                 self, _translate("MainWindow", "Error"),
                 _translate("MainWindow", "No data file loaded!"),
                 QMessageBox.Close, QMessageBox.Close)
             return
-        if self.groupBox_output.isChecked() and self.lineEdit_output.text().strip() == '':
+        if (self.groupBox_output.isChecked() and
+                self.lineEdit_output.text().strip() == ''):
             QMessageBox.critical(
                 self, _translate("MainWindow", "Error"),
                 _translate("MainWindow", "No output path set!"),
                 QMessageBox.Close, QMessageBox.Close)
             return
-        elif self.groupBox_output.isChecked() and self.lineEdit_output.text().strip() != '':
+        elif (self.groupBox_output.isChecked() and
+              self.lineEdit_output.text().strip() != ''):
             path = self.lineEdit_output.text().strip()
             if os.path.isdir(path):
                 self.outputPath = self.lineEdit_output.text().strip()
@@ -246,8 +284,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.spinBox_signal_threshold.value(
         ) == 0 and self.groupBox_signal_threshold.isChecked():
             QMessageBox.warning(
-                self, _translate("MainWindow", "Warning"),
-                _translate(
+                self, _translate("MainWindow", "Warning"), _translate(
                     "MainWindow",
                     "Signal threshold is currently set to zero."),
                 QMessageBox.Ok, QMessageBox.Ok)
@@ -256,12 +293,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBar.setEnabled(True)
         self.statusBar.showMessage(_translate("MainWindow", "Processing..."))
 
-        self.tasks.signals.finished.connect(self.on_processing_finished)
+        self.worker = Worker(self)
         self.tasks.add_task(self.worker)
         self.tasks.start()
 
     @pyqtSlot()
     def on_processing_finished(self):
+        # Clear all jobs from task list
+        # self.tasks.clear()
         # For now, only read the first entry
         exp = self.tasks.data[0]
 
@@ -279,19 +318,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.checkBox_savetables.isChecked():
                 for plate in exp.plates:
                     plate.write_tm_table(
-                        '{}/plate_{}_tm.csv'.format(self.outputPath, str(plate.id)))
+                        '{}/plate_{}_tm.csv'.format(self.outputPath,
+                                                    str(plate.id)))
                     plate.write_data_table(
-                        '{}/plate_{}_dI_dT.csv'.format(self.outputPath, str(plate.id)), dataType='derivative')
+                        '{}/plate_{}_dI_dT.csv'.format(self.outputPath,
+                                                       str(plate.id)),
+                        dataType='derivative')
                     plate.write_data_table(
                         '{}/plate_{}_filtered_data.csv'.format(self.outputPath,
-                                                               str(plate.id)), dataType='filtered')
+                                                               str(plate.id)),
+                        dataType='filtered')
                     plate.write_data_table('{}/plate_{}_raw_data.csv'.format(
                         self.outputPath, str(plate.id)))
 
                 if exp.avg_plate:
                     exp.avg_plate.write_tm_table(
                         '{}/plate_{}_tm_avg.csv'.format(
-                            self.outputPath, str(self.worker.exp.avg_plate.id)), avg=True)
+                            self.outputPath,
+                            str(self.worker.exp.avg_plate.id)),
+                        avg=True)
 
         self.progressBar.setEnabled(False)
         self.statusBar.showMessage(_translate("MainWindow", "Finished!"))

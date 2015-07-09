@@ -238,7 +238,8 @@ class Well:
 
 class Experiment:
 
-    def __init__(self, exp_type,
+    def __init__(self,
+                 instrument,
                  files=None,
                  replicates=None,
                  t1=25,
@@ -261,7 +262,7 @@ class Experiment:
         self.reads = int(round((t2 + 1 - t1) / dt))
         self.wellnum = self.cols * self.rows
         self.files = files
-        self.type = exp_type
+        self.instrument = instrument
         self.wells = []
         self.max_tm = None
         self.min_tm = None
@@ -290,8 +291,7 @@ class Experiment:
         # populate self.plates with data in provided files list
         i = 1
         for file in files:
-            plate = Plate(plate_type=self.type,
-                          owner=self,
+            plate = Plate(owner=self,
                           filename=file,
                           t1=self.t1,
                           t2=self.t2,
@@ -308,8 +308,7 @@ class Experiment:
         # if more than one file is provied, assume that those are replicates
         # and add a special plate representing the average results
         if len(files) > 1:
-            self.avg_plate = Plate(plate_type=self.type,
-                                   owner=self,
+            self.avg_plate = Plate(owner=self,
                                    filename=None,
                                    t1=self.t1,
                                    t2=self.t2,
@@ -355,7 +354,7 @@ class Experiment:
 
 class Plate:
 
-    def __init__(self, plate_type, owner,
+    def __init__(self, owner,
                  plate_id=None,
                  filename=None,
                  replicates=None,
@@ -387,7 +386,7 @@ class Plate:
         self.reads = int(round((t2 + 1 - t1) / dt))
         self.wellnum = self.cols * self.rows
         self.filename = filename
-        self.type = plate_type
+        self.instrument = owner.instrument
         self.wells = []
         self.max_tm = None
         self.min_tm = None
@@ -445,14 +444,9 @@ class Plate:
             # If the file is not found, or not accessible: abort
             print('Error accessing file: {}'.format(e))
 
-        if self.type == 'Analytik Jena qTOWER 2.0/2.2':
-            instrument = AnalytikJenaqTower2()
-
-        else:
-            # Raise exception, if the instrument's name is unknown
-            raise NameError('Unknown instrument type: {}'.format(self.type))
-
-        self.wells = instrument.loadData(self.filename, self.reads, self.wells)
+        self.wells = self.instrument.loadData(self.filename,
+                                              self.reads,
+                                              self.wells)
 
         for well in self.wells:
             well.analyze()

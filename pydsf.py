@@ -37,12 +37,6 @@ try:
 except ImportError:
     raise ImportError('----- PyQt5 must be installed -----')
 
-# Import available instruments
-try:
-    from instruments.analytikJenaqTower2 import AnalytikJenaqTower2
-except ImportError as err:
-    raise ImportError('Error while loading instrument plugins:', err)
-
 _translate = QCoreApplication.translate
 
 

@@ -45,8 +45,8 @@ class Worker(QRunnable):
             c_lower = self.owner.doubleSpinBox_lower.value()
             c_upper = self.owner.doubleSpinBox_upper.value()
         if self.owner.groupBox_cbar.isChecked():
-            cbar_range = (self.owner.doubleSpinBox_cbar_start,
-                          self.owner.doubleSpinBox_cbar_end)
+            cbar_range = (self.owner.doubleSpinBox_cbar_start.value(),
+                          self.owner.doubleSpinBox_cbar_end.value())
         if self.owner.groupBox_signal_threshold.isChecked():
             signal_threshold = self.owner.spinBox_signal_threshold.value()
 

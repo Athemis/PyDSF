@@ -105,6 +105,35 @@ class Well:
         except Exception:
             return np.NaN
 
+    def temp_within_cutoff(self, value):
+        """
+        Checks if a given value is within the defined temperature cutoff.
+        """
+        if (value >= self.owner.tm_cutoff_low and
+                value <= self.owner.tm_cutoff_high):
+            return True
+        else:
+            return False
+
+    def interpolate_tm(self, x, y, max_i, tm):
+        """
+        Performs an interpolation to fine-tune a Tm value by interpolating
+        a gaussian function around the approximate peak position.
+        """
+        try:
+            # If tm is within cutoff, perform the interpolation
+            if (self.temp_within_cutoff(tm)):
+                tm = round(peakutils.interpolate(x, y,
+                                                 width=3,
+                                                 ind=[max_i])[0], 2)
+                # Remove the denatured flag
+                self.owner.denatured_wells.remove(self)
+                return tm  # and return the Tm
+            else:
+                return np.NaN  # otherwise, return NaN
+        except Exception:
+            return np.NaN  # In case of error, return NaN
+
     def calc_tm(self):
         """
         Calculate the Tm of the well. Returns either the Tm or 'np.NaN'.
@@ -116,48 +145,42 @@ class Well:
         # First assume that the well is denatured
         self.owner.denatured_wells.append(self)
 
-        # If a temperatur cutoff has been set and the minimum/maximum
-        # temperature values of the provided data is not within that range,
-        # cut data accordingly.
-        if (self.owner.tm_cutoff_low != self.owner.t1 or
-                self.owner.tm_cutoff_high != self.owner.t1):
-            x = np.arange(self.owner.tm_cutoff_low,
-                          self.owner.tm_cutoff_high + 1, self.owner.dt,
-                          dtype=np.dtype(np.float))
-        # Otherwise use the whole temperature range of the data
-        else:
-            x = self.owner.temprange
+        # Use the whole temperature range for x. We'll check the cutoff later
+        x = self.owner.temprange
 
         # Use second derivative as y
         y = self.derivatives[1]
 
-        # Substract baseline from y
+        # Substract baseline from y if requested
         if self.baseline_correction:
             y = y - self.baseline
 
         # Run peak finding; return NaN in case of error
         try:
             peak_indexes = peakutils.indexes(y, thres=0.3)
-            peaks_x = peakutils.interpolate(x, y, width=3, ind=peak_indexes)
 
-            if len(peaks_x) > 0:
-                tm = max(peaks_x)
+            # loop over results to find maximum value for peak candidates
+            max_y = None  # current maximum
+            max_i = None  # index of current maximum
+            for peak in peak_indexes:
+                # if current peak is larger than old maximum and its
+                # second derivative is positive, replace maximum with
+                # current peak
+                if (not max_y or y[peak] > max_y) and y[peak] > 0:
+                    max_y = y[peak]
+                    max_i = peak
+
+            # If a global maximum is identified, return use its x value as
+            # melting temperature
+            if max_y and max_i:
+                tm = x[max_i]
+                return self.interpolate_tm(x, y, max_i, tm)
+            # if no maximum is found, return NaN
             else:
                 return np.NaN
 
         except Exception:
             return np.NaN  # In case of error, return no peak
-
-        try:
-            if (tm and tm >= self.owner.tm_cutoff_low and
-                    tm <= self.owner.tm_cutoff_high):
-                self.owner.denatured_wells.remove(self)
-                # If everything is fine, remove the denatured flag
-                return tm  # and return the Tm
-            else:
-                return np.NaN  # otherwise, return NaN
-        except Exception:
-            return np.NaN  # In case of error, return NaN
 
     def is_denatured(self):
         """

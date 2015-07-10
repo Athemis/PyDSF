@@ -99,6 +99,9 @@ class Tasks(QObject):
         self.pool.waitForDone()
         return self.data
 
+    def clear_data(self):
+        self.data = []
+
     def start(self):
         for task in self.tasks:
             self.pool.start(task)
@@ -254,6 +257,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Slot documentation goes here.
         """
 
+        self.remove_plate_tabs()
         self.instrument = self.getSelectedInstrument()
 
         if self.listWidget_data.count() < 1:
@@ -288,7 +292,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     "Signal threshold is currently set to zero."),
                 QMessageBox.Ok, QMessageBox.Ok)
 
-        self.remove_plate_tabs()
         self.progressBar.setEnabled(True)
         self.statusBar.showMessage(_translate("MainWindow", "Processing..."))
 
@@ -302,6 +305,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.tasks.clear()
         # For now, only read the first entry
         exp = self.tasks.data[0]
+        # clear data in tasks object
+        self.tasks.clear_data()
 
         for i in range(len(self.worker.exp.plates)):
 

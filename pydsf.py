@@ -307,9 +307,9 @@ class Experiment:
 
         # populate self.plates with data in provided files list
         i = 1
-        for file in files:
+        for filename in files:
             plate = Plate(owner=self,
-                          filename=file,
+                          filename=filename,
                           t1=self.t1,
                           t2=self.t2,
                           dt=self.dt,

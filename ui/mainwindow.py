@@ -5,9 +5,10 @@ Module implementing MainWindow.
 from PyQt5.QtCore import (pyqtSlot, QObject, pyqtSignal, QThreadPool,
                           QRunnable, QCoreApplication)
 from PyQt5.QtWidgets import (QMainWindow, QProgressBar, QDialogButtonBox,
-                             QFileDialog, QMessageBox, QApplication)
+                             QFileDialog, QMessageBox, QApplication, QDialog)
 
 from .Ui_mainwindow import Ui_MainWindow
+from .Ui_dialogabout import Ui_DialogAbout
 from .mplwidget import MplWidget
 from pydsf import Experiment, PlotResults
 import os
@@ -374,7 +375,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Slot documentation goes here.
         """
         # TODO: not implemented yet
-        raise NotImplementedError
+        dialog = QDialog()
+        dialog.ui = Ui_DialogAbout()
+        dialog.ui.setupUi(dialog)
+        dialog.exec_()
+
 
     @pyqtSlot()
     def on_actionAbout_Qt_triggered(self):

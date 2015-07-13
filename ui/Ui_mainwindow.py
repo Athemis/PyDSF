@@ -302,7 +302,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "PyDSF"))
         self.groupBox_experiment.setTitle(_translate("MainWindow", "Experimental Setup"))
         self.label_instrument.setText(_translate("MainWindow", "Instrument"))
-        #self.comboBox_instrument.setItemText(0, _translate("MainWindow", "Analytik Jena qTOWER 2.0/2.2"))
+        self.comboBox_instrument.setItemText(0, _translate("MainWindow", "Analytik Jena qTOWER 2.0/2.2"))
         self.groupBox_data.setToolTip(_translate("MainWindow", "<html><head/><body><p>Add data files to the experiment. If multiple files are loaded, they are treated as replicates.</p></body></html>"))
         self.groupBox_data.setTitle(_translate("MainWindow", "Data File"))
         self.groupBox_replicates.setTitle(_translate("MainWindow", "Replicates"))

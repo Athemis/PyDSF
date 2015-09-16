@@ -1,11 +1,9 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import glob
 from PyQt5 import QtWidgets, QtCore
 
 from ui.mainwindow import MainWindow
-
 
 if __name__ == "__main__":
     import sys
@@ -21,5 +19,4 @@ if __name__ == "__main__":
     # fire up main ui
     ui = MainWindow()
     ui.showMaximized()
-    #ui.show()
     sys.exit(app.exec_())

@@ -19,12 +19,6 @@ class MplCanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-    # override mouseMoveEvent with non-functional dummy
-    # this will prevent the gui thread to hang while moving the mouse
-    # while a large number of plots is shown simultaniously
-    def mouseMoveEvent(self, event):
-        pass
-
     def clear(self):
         self.ax.clear()
         self.fig.clear()
@@ -38,6 +32,16 @@ class MplCanvas(FigureCanvas):
                 _translate("MainWindow", "Error saving figure! Please check "
                            "permissions/free space of target path!"),
                 QtWidgets.QMessageBox.Close, QtWidgets.QMessageBox.Close)
+
+
+class MplCanvasNoMouse(MplCanvas):
+
+    # override mouseMoveEvent with non-functional dummy
+    # this will prevent the gui thread to hang while moving the mouse
+    # while a large number of plots is shown simultaniously
+
+    def mouseMoveEvent(self, event):
+        pass
 
 
 class CustomNavigationToolbar(NavigationToolbar):
@@ -60,9 +64,12 @@ class CustomNavigationToolbar(NavigationToolbar):
 
 class MplWidget(QtWidgets.QGraphicsView):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, mouse_event=False):
         QtWidgets.QGraphicsView.__init__(self, parent)
-        self.canvas = MplCanvas()
+        if mouse_event:
+            self.canvas = MplCanvas()
+        else:
+            self.canvas = MplCanvasNoMouse()
         self.ntb = CustomNavigationToolbar(self.canvas, self,
                                            coordinates=False)
         self.vbl = QtWidgets.QVBoxLayout()

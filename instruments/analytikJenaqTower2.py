@@ -11,6 +11,8 @@ class AnalytikJenaqTower2:
         self.name = "Analytik Jena qTower 2.0/2.2"
         self.providesTempRange = False
         self.providesDeltaT = False
+        self.wells_horizontal = 12
+        self.wells_vertical = 8
 
     def loadData(self, filename, reads, wells):
         with open(filename, 'r') as f:

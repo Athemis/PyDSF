@@ -47,7 +47,12 @@ class Well:
     Owned by an object of type 'Plate'.
     """
 
-    def __init__(self, owner, name=None):
+    def __init__(self,
+                 owner,
+                 name=None,
+                 concentration=None,
+                 well_id=None,
+                 empty=False):
         self.owner = owner
         self.name = name
         self.raw = np.zeros(self.owner.reads, dtype=np.float)
@@ -58,6 +63,10 @@ class Well:
         self.tm_sd = np.NaN
         self.baseline_correction = owner.baseline_correction
         self.baseline = None
+        self.concentration = concentration
+        self.id = well_id
+        self.empty = empty
+        self.denatured = True
 
     def filter_raw(self):
         """
@@ -110,7 +119,7 @@ class Well:
         Checks if a given value is within the defined temperature cutoff.
         """
         if (value >= self.owner.tm_cutoff_low and
-                value <= self.owner.tm_cutoff_high):
+            value <= self.owner.tm_cutoff_high):
             return True
         else:
             return False
@@ -123,11 +132,13 @@ class Well:
         try:
             # If tm is within cutoff, perform the interpolation
             if (self.temp_within_cutoff(tm)):
-                tm = round(peakutils.interpolate(x, y,
+                tm = round(peakutils.interpolate(x,
+                                                 y,
                                                  width=3,
-                                                 ind=[max_i])[0], 2)
+                                                 ind=[max_i])[0],
+                           2)
                 # Remove the denatured flag
-                self.owner.denatured_wells.remove(self)
+                self.denatured = False
                 return tm  # and return the Tm
             else:
                 return np.NaN  # otherwise, return NaN
@@ -139,11 +150,15 @@ class Well:
         Calculate the Tm of the well. Returns either the Tm or 'np.NaN'.
         """
         # Check if the well has already been flagged as denatured
-        if self in self.owner.denatured_wells:
+        # if self.denatured:
+        #    return np.NaN  # Return 'NaN' if true
+
+        # Check if the well is empty
+        if self.empty:
             return np.NaN  # Return 'NaN' if true
 
         # First assume that the well is denatured
-        self.owner.denatured_wells.append(self)
+        self.denatured = True
 
         # Use the whole temperature range for x. We'll check the cutoff later
         x = self.owner.temprange
@@ -174,6 +189,7 @@ class Well:
             # melting temperature
             if max_y and max_i:
                 tm = x[max_i]
+                self.denatured = False
                 return self.interpolate_tm(x, y, max_i, tm)
             # if no maximum is found, return NaN
             else:
@@ -188,21 +204,18 @@ class Well:
         already flagged as denatured, no Tm was found, or if the initial
         signal intensity is above a user definded threshold.
         """
-        denatured = True  # Assumption is that the well is denatured
-
-        if self in self.owner.denatured_wells:
-            # check if the well is already flagged as denatured
-            return denatured  # return true if it is
+        if self.denatured:
+            return self.denatured
 
         if self.tm and (self.tm <= self.owner.tm_cutoff_low or
-                        self.tm >= self.owner.tm_cutoff_high):
-            denatured = True
-            return denatured
+                            self.tm >= self.owner.tm_cutoff_high):
+            self.denatured = True
+            return self.denatured
 
         for i in self.derivatives[1]:
             # Iterate over all points in the first derivative
             if i > 0:  # If a positive slope is found
-                denatured = False  # set denatured flag to False
+                self.denatured = False  # set denatured flag to False
 
         reads = int(round(self.owner.reads / 10))
         # How many values should be checked against the signal threshold:
@@ -210,47 +223,48 @@ class Well:
         read = 0
         # Initialize running variable representing the current data point
 
-        if not denatured:
+        if not self.denatured:
             for j in self.filtered:  # Iterate over the filtered data
                 if self.owner.signal_threshold:
                     # If a signal threshold was defined
                     if j > self.owner.signal_threshold and read <= reads:
                         # iterate over 1/10 of all data points
                         # and check for values larger than the threshold.
-                        denatured = True
+                        self.denatured = True
                         # Set flag to True if a match is found
                         print("{}: {}".format(self.name, j))
-                        return denatured  # and return
+                        return self.denatured  # and return
             read += 1
 
-        return denatured
+        return self.denatured
 
     def analyze(self):
         """
         Analyse data of the well. Takes care of the calculation of derivatives,
         fitting of splines to derivatives and calculation of melting point.
         """
-        # apply signal filter to raw data to filter out some noise
-        self.filter_raw()
-        # fit a spline to unfiltered and filtered raw data
-        self.splines["raw"] = self.calc_spline(self.raw)
-        self.splines["filtered"] = self.calc_spline(self.filtered)
-        # calculate derivatives of filtered data
-        self.calc_derivatives()
-        # if baseline correction is requested, calculate baseline
-        if self.baseline_correction:
-            self.baseline = self.calc_baseline(self.derivatives[1])
-        # do an initial check if data suggest denaturation
-        if self.is_denatured():
-            # if appropriate, append well to denatured wells of the plate
-            self.owner.denatured_wells.append(self)
-        # fit a spline to the first derivative
-        self.splines["derivative1"] = self.calc_spline(self.derivatives[1])
-        # calculate and set melting point
-        self.tm = self.calc_tm()
-        # fallback: set melting point to NaN
-        if self.tm is None:
-            self.tm = np.NaN
+        if not self.empty:
+            # apply signal filter to raw data to filter out some noise
+            self.filter_raw()
+            # fit a spline to unfiltered and filtered raw data
+            self.splines["raw"] = self.calc_spline(self.raw)
+            self.splines["filtered"] = self.calc_spline(self.filtered)
+            # calculate derivatives of filtered data
+            self.calc_derivatives()
+            # if baseline correction is requested, calculate baseline
+            if self.baseline_correction:
+                self.baseline = self.calc_baseline(self.derivatives[1])
+            # do an initial check if data suggest denaturation
+            # if self.is_denatured():
+                # if appropriate, append well to denatured wells of the plate
+                # self.owner.denatured_wells.append(self)
+            # fit a spline to the first derivative
+            self.splines["derivative1"] = self.calc_spline(self.derivatives[1])
+            # calculate and set melting point
+            self.tm = self.calc_tm()
+            # fallback: set melting point to NaN
+            if self.tm is None:
+                self.tm = np.NaN
 
 
 class Experiment:
@@ -268,7 +282,9 @@ class Experiment:
                  cutoff_high=None,
                  signal_threshold=None,
                  color_range=None,
-                 baseline_correction=False):
+                 baseline_correction=False,
+                 concentrations=None,
+                 average_rows=None):
         self.replicates = replicates
         self.cols = cols
         self.rows = rows
@@ -287,6 +303,8 @@ class Experiment:
         self.signal_threshold = signal_threshold
         self.avg_plate = None
         self.baseline_correction = baseline_correction
+        self.concentrations = concentrations
+        self.average_rows = average_rows
         # use cuttoff if provided, otherwise cut at edges
         if cutoff_low:
             self.tm_cutoff_low = cutoff_low
@@ -322,9 +340,10 @@ class Experiment:
             plate.id = i
             self.plates.append(plate)
             i += 1
-        # if more than one file is provied, assume that those are replicates
-        # and add a special plate representing the average results
-        if len(files) > 1:
+        # if more than one file is provided or average over rows is requested,
+        # assume that those are replicates and add a special plate
+        # representing the average results
+        if len(files) > 1 or self.average_rows:
             self.avg_plate = Plate(owner=self,
                                    filename=None,
                                    t1=self.t1,
@@ -338,6 +357,70 @@ class Experiment:
                                    color_range=self.color_range)
             self.avg_plate.id = 'average'
 
+    def average_by_plates(self):
+        # iterate over all wells in a plate
+        for i in range(self.wellnum):
+            tmp = []
+            # iterate over all plates
+            for plate in self.plates:
+                tm = plate.wells[i].tm
+                self.avg_plate.wells[i].name = plate.wells[i].name
+                if not plate.wells[i].denatured:
+                    # if well is not denatured, add to collection of tm
+                    # values
+                    tmp.append(tm)
+            if len(tmp) > 0:
+                # if at least one tm is added, calculate average
+                # and standard deviation
+                self.avg_plate.wells[i].tm = np.nanmean(tmp)
+                self.avg_plate.wells[i].tm_sd = np.nanstd(tmp)
+                self.avg_plate.wells[
+                    i].concentration = plate.wells[i].concentration
+            else:
+                # otherwise add to denatured wells
+                self.avg_plate.wells[i].denatured = True
+
+    def average_by_rows(self):
+        for plate in self.plates:
+
+            for well in self.avg_plate.wells:
+                well.empty = True
+
+            i = 0
+            for column in range(plate.cols):
+                equivalent_wells = []
+                for row in range(plate.rows):
+                    w = row * plate.cols + column
+                    mod = (row + 1) % self.average_rows
+
+                    print("Merging well {} with Tm of {}".format(
+                        plate.wells[w].id, plate.wells[w].tm))
+                    equivalent_wells.append(plate.wells[w].tm)
+
+                    if mod == 0:
+                        print(equivalent_wells)
+                        mean = np.nanmean(equivalent_wells)
+                        std = np.nanstd(equivalent_wells)
+                        equivalent_wells = []
+                        self.avg_plate.wells[i].empty = False
+                        self.avg_plate.wells[i].tm = mean
+                        self.avg_plate.wells[i].tm_sd = std
+                        self.avg_plate.wells[i].name = plate.wells[i].name
+                        self.avg_plate.wells[
+                            i].concentration = plate.wells[i].concentration
+                        if np.isnan(mean):
+                            self.avg_plate.wells[i].denatured = True
+                            print("Well {} is denatured!".format(i))
+                        else:
+                            self.avg_plate.wells[i].denatured = False
+                        print(
+                            "Adding new well with ID {}, TM {}, SD {}".format(
+                                i, mean, std))
+
+                    if len(equivalent_wells) == 0:
+                        # i = w
+                        i += 1
+
     def analyze(self):
         """
         Triggers analyzation of plates.
@@ -347,31 +430,15 @@ class Experiment:
         # if more than one plate is present, calculate average values for the
         # merged average plate
         if len(self.plates) > 1:
-            # iterate over all wells in a plate
-            for i in range(self.wellnum):
-                tmp = []
-                # iterate over all plates
-                for plate in self.plates:
-                    tm = plate.wells[i].tm
-                    self.avg_plate.wells[i].name = plate.wells[i].name
-                    if plate.wells[i] not in plate.denatured_wells:
-                        # if well is not denatured, add to collection of tm
-                        # values
-                        tmp.append(tm)
-                if len(tmp) > 0:
-                    # if at least one tm is added, calculate average
-                    # and standard deviation
-                    self.avg_plate.wells[i].tm = np.mean(tmp)
-                    self.avg_plate.wells[i].tm_sd = np.std(tmp)
-                else:
-                    # otherwise add to denatured wells
-                    append_well = self.avg_plate.wells[i]
-                    self.avg_plate.denatured_wells.append(append_well)
+            self.average_by_plates()
+        elif self.average_rows:
+            self.average_by_rows()
 
 
 class Plate:
 
-    def __init__(self, owner,
+    def __init__(self,
+                 owner,
                  plate_id=None,
                  filename=None,
                  replicates=None,
@@ -383,7 +450,8 @@ class Plate:
                  cutoff_low=None,
                  cutoff_high=None,
                  signal_threshold=None,
-                 color_range=None):
+                 color_range=None,
+                 concentrations=None):
         self.cols = cols
         self.rows = rows
         self.owner = owner
@@ -411,6 +479,10 @@ class Plate:
         self.signal_threshold = signal_threshold
         self.id = plate_id
         self.baseline_correction = owner.baseline_correction
+        if concentrations is None:
+            self.concentrations = self.owner.concentrations
+        else:
+            self.concentrations = concentrations
         if cutoff_low:
             self.tm_cutoff_low = cutoff_low
         else:
@@ -424,33 +496,20 @@ class Plate:
         else:
             self.color_range = None
 
-        self.denatured_wells = []
         self.tms = []
 
+        # TODO: Adapt for vertical concentrations
+        conc_id = 0
         for i in range(self.wellnum):
-            well = Well(owner=self)
+            if self.concentrations:
+                if conc_id == self.cols:
+                    conc_id = 0
+                concentration = self.concentrations[conc_id]
+                conc_id += 1
+            else:
+                concentration = None
+            well = Well(owner=self, well_id=i, concentration=concentration)
             self.wells.append(well)
-
-    def analytikJena(self):
-        """
-        Data processing for Analytik Jena qTower 2.0 export files
-        """
-        with open(self.filename, 'r') as f:
-            reader = csv.reader(f, delimiter=';', quoting=csv.QUOTE_NONE)
-
-            i = 0
-            for row in reader:
-                temp = np.zeros(self.reads, dtype=float)
-                for read in range(self.reads + 1):
-                    if read > 0:
-                        try:
-                            temp[read - 1] = row[read]
-                        except (IndexError, ValueError):
-                            temp[read - 1] = 0.0
-                    elif read == 0:
-                        self.wells[i].name = row[read]
-                self.wells[i].raw = temp
-                i += 1
 
     def analyze(self):
         try:
@@ -461,8 +520,7 @@ class Plate:
             # If the file is not found, or not accessible: abort
             print('Error accessing file: {}'.format(e))
 
-        self.wells = self.instrument.loadData(self.filename,
-                                              self.reads,
+        self.wells = self.instrument.loadData(self.filename, self.reads,
                                               self.wells)
 
         for well in self.wells:
@@ -540,10 +598,12 @@ class PlotResults():
         c_values = []  # Array holding the color values aka Tm
         dx_values = []
         dy_values = []
+        ex_values = []
+        ey_values = []
         canvas = widget.canvas
         canvas.clear()
         for well in plate.wells:  # Iterate over all wells
-            if well not in plate.denatured_wells:
+            if not well.denatured and not well.empty:
                 # Check if well is denatured (no Tm found)
                 c = well.tm  # If not, set color to Tm
                 if c < plate.tm_cutoff_low:
@@ -554,6 +614,9 @@ class PlotResults():
                     # Check if Tm is higher that the cutoff
                     c = plate.tm_cutoff_high
                     # If it is, set color to cutoff
+            elif well.empty:
+                ex_values.append(x)
+                ey_values.append(y)
             else:  # If the plate is denatured
                 c = plate.tm_cutoff_low
                 # Set its color to the low cutoff
@@ -576,7 +639,8 @@ class PlotResults():
         # n rows
         if plate.color_range:
             # plot wells and color using the colormap
-            cax = ax1.scatter(x_values, y_values,
+            cax = ax1.scatter(x_values,
+                              y_values,
                               s=305,
                               c=c_values,
                               marker='s',
@@ -584,20 +648,27 @@ class PlotResults():
                               vmax=plate.color_range[1])
         else:
             # plot wells and color using the colormap
-            cax = ax1.scatter(x_values, y_values,
+            cax = ax1.scatter(x_values,
+                              y_values,
                               s=305,
                               c=c_values,
                               marker='s')
 
-        ax1.scatter(dx_values, dy_values,
+        ax1.scatter(dx_values, dy_values, s=305, c='white', marker='s')
+
+        ax1.scatter(dx_values,
+                    dy_values,
                     s=80,
-                    c='white',
+                    c='red',
                     marker='x',
                     linewidths=(1.5, ))
+
+        ax1.scatter(ex_values, ey_values, s=305, c='white', marker='s')
+
         ax1.invert_yaxis()  # invert y axis to math plate layout
         cbar = fig1.colorbar(cax)  # show colorbar
-        ax1.set_xlabel(_translate('pydsf',
-                                  'Columns'))  # set axis and colorbar label
+        # set axis and colorbar label
+        ax1.set_xlabel(_translate('pydsf', 'Columns'))
         ax1.set_ylabel(_translate('pydsf', 'Rows'))
 
         if str(plate.id) == 'average':
@@ -621,7 +692,8 @@ class PlotResults():
         fig.suptitle(title + str(plate.id) + ')')
 
         grid = mpl_toolkits.axes_grid1.Grid(
-            fig, 111,
+            fig,
+            111,
             nrows_ncols=(plate.rows, plate.cols),
             axes_pad=(0.15, 0.25),
             add_all=True,
@@ -641,22 +713,24 @@ class PlotResults():
             ax = grid[i]
             # set title of current subplot to well identifier
             ax.set_title(well.name, size=6)
-            if well in plate.denatured_wells:
+            if well.denatured:
                 ax.patch.set_facecolor('#FFD6D6')
             # only show three tickmarks on both axes
             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
             # check if well is denatured (without determined Tm)
-            if well not in plate.denatured_wells:
+            if not well.denatured:
                 tm = well.tm  # if not, grab its Tm
             else:
                 tm = np.NaN  # else set Tm to np.NaN
             if tm:
                 ax.axvline(x=tm)  # plot vertical line at the Tm
-            ax.axvspan(plate.t1, plate.tm_cutoff_low,
+            ax.axvspan(plate.t1,
+                       plate.tm_cutoff_low,
                        facecolor='0.8',
                        alpha=0.5)  # shade lower cutoff area
-            ax.axvspan(plate.tm_cutoff_high, plate.t2,
+            ax.axvspan(plate.tm_cutoff_high,
+                       plate.t2,
                        facecolor='0.8',
                        alpha=0.5)  # shade higher cutoff area
             # set fontsize for all tick labels to xx-small
@@ -681,7 +755,8 @@ class PlotResults():
         fig.suptitle(title + str(plate.id) + ')')
 
         grid = mpl_toolkits.axes_grid1.Grid(
-            fig, 111,
+            fig,
+            111,
             nrows_ncols=(plate.rows, plate.cols),
             axes_pad=(0.15, 0.25),
             add_all=True,
@@ -695,20 +770,60 @@ class PlotResults():
             ax = grid[i]
             # set title of current subplot to well identifier
             ax.set_title(well.name, size=6)
-            if well in plate.denatured_wells:
+            if well.denatured:
                 ax.patch.set_facecolor('#FFD6D6')
             # only show three tickmarks on both axes
             ax.xaxis.set_major_locator(ticker.MaxNLocator(4))
             ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            ax.axvspan(plate.t1, plate.tm_cutoff_low,
+            ax.axvspan(plate.t1,
+                       plate.tm_cutoff_low,
                        facecolor='0.8',
                        alpha=0.5)  # shade lower cutoff area
-            ax.axvspan(plate.tm_cutoff_high, plate.t2,
+            ax.axvspan(plate.tm_cutoff_high,
+                       plate.t2,
                        facecolor='0.8',
                        alpha=0.5)  # shade higher cutoff area
             # set fontsize for all tick labels to xx-small
             for label in ax.get_xticklabels() + ax.get_yticklabels():
                 label.set_fontsize(6)
             ax.plot(x, y)
+        fig.tight_layout()
+        canvas.draw()
+
+    def plot_concentration_dependency(self,
+                                      plate,
+                                      widget,
+                                      direction='horizontal',
+                                      parameter_label='Parameter [au]',
+                                      error_bars=False):
+        canvas = widget.canvas
+        canvas.clear()
+
+        fig = canvas.fig
+        title = _translate('pydsf', "Melting point vs Parameter (plate #")
+        fig.suptitle(title + str(plate.id) + ')')
+
+        ax1 = fig.add_subplot(111)
+        ax1.set_xlabel(parameter_label)
+        ax1.set_ylabel(_translate('pydsf', 'Melting point [°C]'))
+
+        for row in range(plate.rows):
+            x_values = []
+            y_values = []
+            if error_bars:
+                errors = []
+            for col in range(plate.cols):
+                well = plate.wells[row * col - 1]
+                x = well.concentration
+                y = well.tm
+                x_values.append(x)
+                y_values.append(y)
+                if error_bars:
+                    errors.append(well.tm_sd)
+            if error_bars:
+                ax1.errorbar(x_values, y_values, yerr=errors, fmt='o')
+            else:
+                ax1.plot(x_values, y_values, 'o')
+
         fig.tight_layout()
         canvas.draw()

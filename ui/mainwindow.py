@@ -57,6 +57,15 @@ class Worker(QRunnable):
         files = []
         for item in items:
             files.append(item.text())
+
+        replicates = self.owner.groupBox_replicates.isChecked()
+        row_replicates = self.owner.radioButton_rep_rows.isChecked()
+
+        if replicates and row_replicates:
+            average_rows = self.owner.spinBox_avg_rows.value()
+        else:
+            average_rows = None
+
         self.exp = Experiment(instrument=self.owner.instrument,
                               files=files,
                               t1=self.owner.doubleSpinBox_tmin.value(),
@@ -67,7 +76,9 @@ class Worker(QRunnable):
                               cutoff_low=c_lower,
                               cutoff_high=c_upper,
                               signal_threshold=signal_threshold,
-                              color_range=cbar_range)
+                              color_range=cbar_range,
+                              concentrations=self.owner.concentrations,
+                              average_rows=average_rows)
         self.exp.analyze()
         self.signals.finished.emit()
 
@@ -77,7 +88,6 @@ class TaskSignals(QObject):
 
 
 class Tasks(QObject):
-
     def __init__(self):
         super(Tasks, self).__init__()
 
@@ -116,7 +126,6 @@ class Tasks(QObject):
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-
     """
     Class documentation goes here.
     """
@@ -141,10 +150,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             QDialogButtonBox.AcceptRole)
         self.tasks = Tasks()
         self.tasks.signals.finished.connect(self.on_processing_finished)
+        self.lineEdit_conc.textChanged.connect(
+            self.on_lineEdit_conc_textChanged)
         self.worker = None
         self.outputPath = None
-        self.instrument = None
+        self.concentrations = None
         self.populateInstrumentList()
+        self.instrument = self.getSelectedInstrument()
 
     def populateInstrumentList(self):
         self.instruments = [AnalytikJenaqTower2()]
@@ -152,6 +164,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             instrument = self.instruments[i]
             self.comboBox_instrument.setItemText(i, instrument.name)
 
+    @pyqtSlot()
     def getInstrumentFromName(self, name):
         for instrument in self.instruments:
             if instrument.name == name:
@@ -178,7 +191,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.groupBox_replicates.setChecked(True)
                 self.radioButton_rep_files.setEnabled(True)
         elif button == self.buttonBox_open_reset.button(
-                QDialogButtonBox.Reset):
+            QDialogButtonBox.Reset):
             self.listWidget_data.clear()
 
     @pyqtSlot("QAbstractButton*")
@@ -202,8 +215,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.groupBox_temp.setEnabled(True)
 
-    def generate_plot_tab(self, name):
-        tab = MplWidget(parent=self.tabWidget)
+    def generate_plot_tab(self, name, mouse_event=False):
+        if mouse_event:
+            tab = MplWidget(parent=self.tabWidget, mouse_event=True)
+        else:
+            tab = MplWidget(parent=self.tabWidget)
         tab.setObjectName(name)
         return tab
 
@@ -220,7 +236,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         plotter = PlotResults()
 
         if plate.id != 'average':
-            tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id))
+            tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id),
+                                         mouse_event=True)
             title = _translate("MainWindow", "Heatmap #")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
@@ -243,14 +260,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.checkBox_saveplots.isChecked():
                 tab.canvas.save(
                     "{}/derivatives_{}.svg".format(self.outputPath, plate.id))
+
+            if self.groupBox_conc.isChecked():
+                tab = self.generate_plot_tab("tab_derivative_{}".format(
+                    plate.id))
+                title = _translate("MainWindow", "Parameter Dependency #")
+                self.tabWidget.addTab(tab, title + str(plate.id))
+                if self.lineEdit_par_label.text():
+                    par_label = self.lineEdit_par_label.text()
+                    plotter.plot_concentration_dependency(
+                        plate,
+                        tab,
+                        parameter_label=par_label)
+                else:
+                    plotter.plot_concentration_dependency(plate, tab)
+                if self.checkBox_saveplots.isChecked():
+                    tab.canvas.save(
+                        "{}/para_{}.svg".format(self.outputPath, plate.id))
         else:
-            tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id))
+            tab = self.generate_plot_tab("tab_heatmap_{}".format(plate.id),
+                                         mouse_event=True)
             title = _translate("MainWindow", "Heatmap ")
             self.tabWidget.addTab(tab, title + str(plate.id))
             plotter.plot_tm_heatmap_single(plate, tab)
             if self.checkBox_saveplots.isChecked():
                 tab.canvas.save(
                     "{}/heatmap_{}.svg".format(self.outputPath, plate.id))
+
+            if self.groupBox_conc.isChecked():
+                tab = self.generate_plot_tab("tab_derivative_{}".format(
+                    plate.id))
+                title = _translate("MainWindow", "Parameter Dependency #")
+                self.tabWidget.addTab(tab, title + str(plate.id))
+                if self.lineEdit_par_label.text():
+                    par_label = self.lineEdit_par_label.text()
+                    plotter.plot_concentration_dependency(
+                        plate,
+                        tab,
+                        parameter_label=par_label,
+                        error_bars=True)
+                else:
+                    plotter.plot_concentration_dependency(plate,
+                                                          tab,
+                                                          error_bars=True)
+                if self.checkBox_saveplots.isChecked():
+                    tab.canvas.save(
+                        "{}/para_{}.svg".format(self.outputPath, plate.id))
 
     @pyqtSlot()
     def on_buttonBox_process_accepted(self):
@@ -267,8 +322,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 _translate("MainWindow", "No data file loaded!"),
                 QMessageBox.Close, QMessageBox.Close)
             return
+        if self.groupBox_conc.isChecked():
+            self.concentrations = self.lineEdit_conc.text().split(',')
         if (self.groupBox_output.isChecked() and
-                self.lineEdit_output.text().strip() == ''):
+            self.lineEdit_output.text().strip() == ''):
             QMessageBox.critical(
                 self, _translate("MainWindow", "Error"),
                 _translate("MainWindow", "No output path set!"),
@@ -323,8 +380,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if self.checkBox_savetables.isChecked():
                 for plate in exp.plates:
                     plate.write_tm_table(
-                        '{}/plate_{}_tm.csv'.format(self.outputPath,
-                                                    str(plate.id)))
+                        '{}/plate_{}_tm.csv'.format(self.outputPath, str(
+                            plate.id)))
                     plate.write_data_table(
                         '{}/plate_{}_dI_dT.csv'.format(self.outputPath,
                                                        str(plate.id)),
@@ -380,10 +437,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dialog.ui.setupUi(dialog)
         dialog.exec_()
 
-
     @pyqtSlot()
     def on_actionAbout_Qt_triggered(self):
         """
         Slot documentation goes here.
         """
         QApplication.aboutQt()
+
+    @pyqtSlot()
+    def on_lineEdit_conc_textChanged(self):
+        """
+        Slot documentation goes here.
+        """
+        num_conc = len(self.lineEdit_conc.text().split(','))
+        self.spinBox_num_conc.setValue(num_conc)
+        if self.comboBox_direction.currentIndex() == 0:
+            max_wells = self.instrument.wells_horizontal
+        else:
+            max_wells = self.instrument.wells_vertical
+        if num_conc > max_wells:
+            self.spinBox_num_conc.setStyleSheet("QSpinBox { color : red; }")
+        else:
+            self.spinBox_num_conc.setStyleSheet("QSpinBox { color : black; }")
